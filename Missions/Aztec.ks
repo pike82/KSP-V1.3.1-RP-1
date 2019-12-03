@@ -27,7 +27,7 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_MoonEND is wndw:addhlayout().
 	local MoonEND_label is box_MoonEND:addlabel("Moon PE END (km)").
-	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("2000").
+	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("50").
 	set MoonENDvalue:style:width to 100.
 	set MoonENDvalue:style:height to 18.
 
@@ -137,24 +137,25 @@ RCS on.
 lock steering to transmnv:burnvector.
 wait 60.
 SET SHIP:CONTROL:FORE to 1.
-until false
+until false {
 		if ship:orbit:HASNEXTPATCH {
 			Print "target height:" + ship:orbit:nextPatch:periapsis.
 			if ship:orbit:nextPatch:periapsis < endPE {
 				Break.
 			}
-	}
+		}
   wait 1.
 }
 SET SHIP:CONTROL:FORE to 0.
 unlock steering.
-
 remove transmnv.
 wait 400.
+Print "Maximising solar".
 lock steering to sun:position.//lock pointed towards the sun to maximise solar
 Wait 60.
+set ship:control:roll to 1.//spin stabilise in orbit
+Wait 30.
 RCS off.
-Stage.
 Wait 5.
 Shutdown.
 
