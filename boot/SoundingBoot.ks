@@ -1,4 +1,4 @@
-@LAZYGLOBAL OFF. //Turns off auto global call of parameters and prevents verbose errors where calling recursive functions
+@LAZYGLOBAL OFF. 
 WAIT UNTIL SHIP:UNPACKED.
 WAIT 1. //ensures all game physiscs have loaded
 Print "Running Sounding Bootscript".
