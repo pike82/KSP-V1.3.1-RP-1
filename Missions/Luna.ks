@@ -156,6 +156,7 @@ Wait 60.
 set ship:control:roll to 1.//spin stabilise in orbit
 Wait 30.
 RCS off.
+Stage.
 Wait 5.
 Shutdown.
 
