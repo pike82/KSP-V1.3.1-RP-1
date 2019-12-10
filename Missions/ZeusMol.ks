@@ -10,7 +10,7 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_END is wndw:addhlayout().
 	local END_label is box_END:addlabel("AP Transistion END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("39000").
+	local ENDvalue is box_END:ADDTEXTFIELD("395000").
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
 
@@ -99,7 +99,6 @@ unlock steering.
 RCS off.
 remove nextnode.
 wait 1.0.
-Stage. // swicth to RCS stage
 Print "Waiting for AP".
 wait 15.
 
@@ -118,14 +117,12 @@ RCS on.
 wait 70.
 wait until time:seconds > startTime.
 Print "RCS Throttle up".
-Set throttle to 1.
-Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 1.
+SET SHIP:CONTROL:FORE to 1.
 until hf_isManeuverComplete(nextnode) {
-	wait 0.001.
+	wait 0.1.
 }
 Print "Node complete".
-Set throttle to 0.
-Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+SET SHIP:CONTROL:FORE to 0.
 unlock steering.
 RCS off.
 remove nextnode.
@@ -323,11 +320,15 @@ PARAMETER a.
 Function ff_Avionics_off{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Shutdown Avionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
 }
 
 Function ff_Avionics_on{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Activate Avionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
 }

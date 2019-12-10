@@ -10,15 +10,15 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_END is wndw:addhlayout().
 	local END_label is box_END:addlabel("Target Circ height (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("1000").
+	local ENDvalue is box_END:ADDTEXTFIELD("2200").
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
 
-local box_INC is wndw:addhlayout().
-	local INC_label is box_INC:addlabel("Target Inclination").
-	local INCvalue is box_INC:ADDTEXTFIELD("45").
-	set INCvalue:style:width to 100.
-	set INCvalue:style:height to 18.
+// local box_INC is wndw:addhlayout().
+// 	local INC_label is box_INC:addlabel("Target Inclination").
+// 	local INCvalue is box_INC:ADDTEXTFIELD("45").
+// 	set INCvalue:style:width to 100.
+// 	set INCvalue:style:height to 18.
 
 local somebutton is wndw:addbutton("Confirm").
 set somebutton:onclick to Continue@.
@@ -37,9 +37,9 @@ Function Continue {
 		set val to val:tonumber(0).
 		Global endheight is val*1000.
 
-		set val to INCvalue:text.
-		set val to val:tonumber(0).
-		Global endINC is val.
+		// set val to INCvalue:text.
+		// set val to val:tonumber(0).
+		// Global endINC is val.
 
 	wndw:hide().
   	set isDone to true.
@@ -67,7 +67,7 @@ Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
 
-/////High tranfer burn
+/////Rough Circularisation tranfer burn
 Local transnode is ff_Transfer ().
 local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag /2, 267, 33, 1) ).
 Print "burn starts at: " + startTime.
@@ -89,7 +89,7 @@ SET SHIP:CONTROL:FORE to 0.
 Lock Throttle to 1.
 stage.//Start main engines
 until hf_isManeuverComplete(nextnode) {
-	if ship:apoapsis > endheight {
+	if ship:apoapsis > endheight and ship:periapsis > endheight {
 		Break.
 	}
 	wait 0.001.
@@ -100,18 +100,15 @@ RCS off.
 wait 0.001.
 remove nextnode.
 wait 1.0.
-Stage. // swicth stages to RCS stage
 Print "Waiting for AP".
 wait 15.
 
-/////refine burn.
-
+/////refine circularisation burn.
 Local transnode is ff_LowerTransfer ().
 local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag/ 2, 120.9, 0.096, 4) ).
 Print "refine burn starts at: " + startTime.
 ff_Avionics_off().
 wait 5.
-stage.
 warpto(startTime - 75).
 wait until time:seconds > startTime - 70.
 lock steering to nextnode:deltav.
@@ -131,7 +128,7 @@ Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 unlock steering.
 RCS off.
 remove nextnode.
-
+Stage.
 wait 400.
 Shutdown.
 
@@ -170,7 +167,7 @@ function ff_LowerTransfer {
 function hf_APScore{
   parameter mnv.
   Local result is 0.
-	Local result is -(endINC-abs(mnv:orbit:inclination)) - (abs(mnv:orbit:apoapsis - endheight)/10000).// - nextnode:deltav:mag.
+	Local result is - (abs(mnv:orbit:apoapsis - endheight)/10000)- (abs(mnv:orbit:periapsis - endheight)/10000).//-(endINC-abs(mnv:orbit:inclination)) - nextnode:deltav:mag.
 	Print result.
   return result.
 }
@@ -327,11 +324,15 @@ PARAMETER a.
 Function ff_Avionics_off{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Shutdown Avionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
 }
 
 Function ff_Avionics_on{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Activate Avionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
 }

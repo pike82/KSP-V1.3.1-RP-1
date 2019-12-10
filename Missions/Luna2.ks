@@ -4,13 +4,28 @@ local wndw is gui(300).
 set wndw:x to 700. //window start position
 set wndw:y to 120.
 
+Print "Locking resources".
+Local RSS_partlist is list().
+Local partlist is List().
+Local resourcelist is list().
+LIST Parts IN partList. 
+FOR Part IN partList {  
+	IF (Part:tag >= "Upperstage") or (Part:tag >= "Probe") { 
+		RSS_partlist:add(Part).
+	}
+}
+For part in RSS_partlist{
+	For res in part:Resources{
+			Set res:enabled to false.
+	}
+}
 local label is wndw:ADDLABEL("Enter Mission Values").
 set label:STYLE:ALIGN TO "CENTER".
 set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_MoonEND is wndw:addhlayout().
 	local MoonEND_label is box_MoonEND:addlabel("Moon PE END (km)").
-	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("50").
+	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("75").
 	set MoonENDvalue:style:width to 100.
 	set MoonENDvalue:style:height to 18.
 
@@ -33,7 +48,7 @@ Function Continue {
 	wndw:hide().
   	set isDone to true.
 }
-Global boosterCPU is "Aethon2".
+Global boosterCPU is "Aethon".
 
 Print "Waiting for activation".
 //wait for active
@@ -49,21 +64,42 @@ until holdload = true {
 	}
 	wait 0.2.
 }
-Print "Aztec2 active".
+Print "Luna2 active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
 RCS off.
+
+///unlock resources for use
+Print "Unlocking resources".
+Local RSS_partlist is list().
+Local partlist is List().
+Local resourcelist is list().
+LIST Parts IN partList. 
+FOR Part IN partList {  
+	IF (Part:tag >= "Upperstage") or (Part:tag >= "Probe") { 
+		RSS_partlist:add(Part).
+	}
+}
+For part in RSS_partlist{
+	For res in part:Resources{
+			Set res:enabled to True.
+	}
+}
+wait 1.
+
 ////TODO: USe RCS to align with moon via transfer@ then shoot then ullage and burn to moon.
 Local transnode is ff_transfer(moon).
 local transmnv is node(transnode[0], transnode[1], transnode[2], transnode[3]).
 add transmnv.
-local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:mag, 276*0.9, 67*0.9, 1) / 2).
+local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:mag, 267, 33, 1) / 2).
 Print "burn starts at: " + startTime.
 Print nextnode:orbit:nextPatch:inclination.
 wait 5.
+ff_Avionics_off().
 warpto(startTime - 150).
 wait until time:seconds > startTime - 120.
+ff_Avionics_on().
 RCS on.
 lock steering to transmnv:burnvector.
 wait until time:seconds > startTime-10.//RCS ullage Start
@@ -92,7 +128,9 @@ remove transmnv.
 Local corr_time is time:seconds + (ship:orbit:nextPatchEta / 2).
 Print "Correction man at:" + corr_time.
 wait 5.
+ff_Avionics_off().
 warpto(corr_time - 25).
+ff_Avionics_on().
 stage.
 until time:seconds > corr_time {
 	Wait 1.
@@ -104,7 +142,9 @@ add transmnv.
 local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:mag, 198, 1, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
+ff_Avionics_off().
 warpto(startTime - 25).
+ff_Avionics_on().
 wait until time:seconds > startTime - 20.
 RCS on.
 lock steering to transmnv:burnvector.
@@ -125,7 +165,9 @@ remove transmnv.
 
 Set corr_time to time:seconds + ship:orbit:nextPatchEta.
 wait 5.
+ff_Avionics_off().
 warpto(corr_time - 25).
+ff_Avionics_on().
 until time:seconds +60 > corr_time {
 	Wait 1.
 }
@@ -166,12 +208,16 @@ If ship:orbit:periapsis > endPE{
 }
 Print "PE Burn Setup".
 Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
+Print "Orb: " +orbspeed.
 Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag - orbspeed.
 Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(abs(Burnspeed), 198, 1, 1) / 2).
 Print "Dv: " +BurnSpeed.
 Print corr_time. 
+Set corr_time to time:seconds + eta:periapsis - 60.
 wait 5.
+ff_Avionics_off().
 warpto(corr_time - 180).
+ff_Avionics_on().
 Print "Starting PE Burn".
 Lock steering to retrograde.
 RCS on.
@@ -186,7 +232,7 @@ until (ship:orbit:apoapsis < 1.2*endPE) and (ship:orbit:apoapsis > 0)  or (AVAIL
 }
 lock throttle to 0.
 RCS off.
-
+ff_Avionics_off().
 wait 400.
 Shutdown.
 
@@ -535,3 +581,19 @@ FUNCTION ff_COMMS {
 		}.
 	}
 } // End of Function
+
+Function ff_Avionics_off{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleProceduralAvionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
+}
+
+Function ff_Avionics_on{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleProceduralAvionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
+}
