@@ -184,9 +184,17 @@ FUNCTION ff_COMMS {
 
 
 function ff_Transfer {
-	local startSearchTime is time:seconds + eta:apoapsis.
+	local predictUT is time:seconds + 10.
+	local futurePos is ship:altitude.
+	Until futurePos > endheight{
+		set futurePos to ship:body:altitudeOf(positionat(ship, predictUT)).
+		Set predictUT to predictUT + 5.
+		print "predictUT: " + predictUT + "futurePos: " + futurePos.
+	}
+
+	local startSearchTime to predictUT.
 	Print "startSearchTime" + startSearchTime.
-	wait 10.
+	wait 1.
 	local transfer is ff_seek(ff_freeze(startSearchTime), 0, 0, 1000, hf_APScore@).
 	return transfer.
 }

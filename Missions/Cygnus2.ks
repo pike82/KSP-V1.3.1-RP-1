@@ -4,7 +4,7 @@ local wndw is gui(300).
 set wndw:x to 700. //window start position
 set wndw:y to 120.
 
-Global boosterCPU is "Hammer2".
+Global boosterCPU is "Aethon".
 
 Local holdload is false. 
 until holdload = true {
@@ -19,12 +19,49 @@ until holdload = true {
 	}
 	wait 2.
 }
-Print "Cygnus active".
+
+Print "Locking resources".
+Local RSS_partlist is list().
+Local partlist is List().
+Local resourcelist is list().
+LIST Parts IN partList. 
+FOR Part IN partList {  
+	IF (Part:tag >= "Cygnus2") { 
+		RSS_partlist:add(Part).
+	}
+}
+For part in RSS_partlist{
+	For res in part:Resources{
+			Set res:enabled to False.
+	}
+}
+
+Print "Cygnus 2 active".
 wait 180.
-until ALT:RADAR < 125000{
+Print "Turn on RCS to commence De-orbit".
+Lock steering to retrograde.
+Until RCS {
 	Wait 2.
 }
-RCS on.
+Print "Moving to Retrograde position".
+wait 60.
+SET SHIP:CONTROL:FORE to 0.9.
+Lock Throttle to 1.
+wait 5.
+Until ship:orbit:periapsis < 30000{
+	Wait 1.
+}
+until ALT:RADAR < 135000{
+	Wait 2.
+}
+Print "Unlocking resources".
+For part in RSS_partlist{
+	For res in part:Resources{
+			Set res:enabled to True.
+	}
+}
+Stage.//relase rcs engine and camera
+wait 5.
 Lock Steering to retrograde.
 Stage.//Stage chute
 Lock Throttle to 0.
@@ -36,5 +73,4 @@ for RealChute in ship:modulesNamed("RealChuteModule") {
 	RealChute:doevent("arm parachute").
 	Print "Parchute armed enabled.".
 }
-
-
+Wait 60.
