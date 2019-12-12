@@ -14,6 +14,12 @@ local box_END is wndw:addhlayout().
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
 
+local box_END is wndw:addhlayout().
+	local Sun_label is box_END:addlabel("Sun?").
+	local Sunvalue is box_END:ADDTEXTFIELD("False").
+	set Sunvalue:style:width to 100.
+	set Sunvalue:style:height to 18.
+
 // local box_INC is wndw:addhlayout().
 // 	local INC_label is box_INC:addlabel("Target Inclination").
 // 	local INCvalue is box_INC:ADDTEXTFIELD("45").
@@ -36,6 +42,9 @@ Function Continue {
 		set val to ENDvalue:text.
 		set val to val:tonumber(0).
 		Global endheight is val*1000.
+
+		set val to Sunvalue:text.
+		Global endSun is val.
 
 		// set val to INCvalue:text.
 		// set val to val:tonumber(0).
@@ -66,6 +75,30 @@ Print "Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
+
+If endSun = true{
+	lock steering to Prograde. 
+	ff_Avionics_on().
+	RCS on.
+	wait 60.
+	SET SHIP:CONTROL:FORE to 0.9.
+	Wait 5.
+	SET SHIP:CONTROL:FORE to 0.
+	Lock Throttle to 1.
+	stage.//Start main engines
+	until endsun = false {
+		if AVAILABLETHRUST < 1 {Break.}
+		wait 10.
+	}
+	lock throttle to 0.
+	unlock steering.
+	RCS off.
+	wait 1.0.
+	Stage.
+	Wait 1.0.
+	Shutdown.
+}
+
 
 /////Rough Circularisation tranfer burn
 Local transnode is ff_Transfer ().

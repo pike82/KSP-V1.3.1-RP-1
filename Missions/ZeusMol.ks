@@ -10,7 +10,7 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_END is wndw:addhlayout().
 	local END_label is box_END:addlabel("AP Transistion END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("395000").
+	local ENDvalue is box_END:ADDTEXTFIELD("39500").
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
 
@@ -109,9 +109,12 @@ local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:m
 Print "refine burn starts at: " + startTime.
 ff_Avionics_off().
 wait 5.
+Stage. // get rid of base stage
 warpto(startTime - 75).
 wait until time:seconds > startTime - 70.
-lock steering to nextnode:deltav.
+SAS on.
+lock steering to prograde.
+//lock steering to nextnode:deltav. //burnvector
 ff_Avionics_on().
 RCS on.
 wait 70.
@@ -126,6 +129,7 @@ SET SHIP:CONTROL:FORE to 0.
 unlock steering.
 RCS off.
 remove nextnode.
+SAS off.
 wait 400.
 Shutdown.
 
