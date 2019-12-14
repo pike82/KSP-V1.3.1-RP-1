@@ -504,11 +504,15 @@ FUNCTION ff_COMMS {
 Function ff_Avionics_off{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Shutdown Avionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
 }
 
 Function ff_Avionics_on{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Activate Avionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
 }

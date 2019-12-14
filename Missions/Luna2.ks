@@ -208,8 +208,8 @@ If ship:orbit:periapsis > endPE{
 }
 Print "PE Burn Setup".
 Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
-Print "Orb: " +orbspeed.
-Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag - orbspeed.
+Print "Orb: " + orbspeed.
+Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag.
 Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(abs(Burnspeed), 198, 1, 1) / 2).
 Print "Dv: " +BurnSpeed.
 Print corr_time. 

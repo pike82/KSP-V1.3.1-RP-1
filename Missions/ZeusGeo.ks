@@ -10,7 +10,7 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_END is wndw:addhlayout().
 	local END_label is box_END:addlabel("AP Transistion END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("220000").
+	local ENDvalue is box_END:ADDTEXTFIELD("180000").
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
 
@@ -34,10 +34,11 @@ Function Continue {
   	set isDone to true.
 }
 
-Global boosterCPU is "Aethon2".
+Global boosterCPU is "Aethon".
 
 Print "Stop burn at: " + endheight + "m".
 Print "Waiting for activation".
+ff_avionics_off().
 //wait for active
 Local holdload is false. 
 until holdload = true {
@@ -51,7 +52,8 @@ until holdload = true {
 	}
 	wait 0.2.
 }
-Print "Comm active".
+ff_avionics_on().
+Print "Geo Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
@@ -60,7 +62,7 @@ ff_avionics_off().
 
 Local transnode is ff_Transfer (endheight).
 //local transmnv is node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 270, 33.4, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 267, 33, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 warpto(startTime - 75).
@@ -507,11 +509,15 @@ PARAMETER a.
 Function ff_Avionics_off{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Shutdown Avionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
 }
 
 Function ff_Avionics_on{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Activate Avionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
 }
