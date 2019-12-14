@@ -6,20 +6,6 @@ set wndw:y to 120.
 
 Global boosterCPU is "Aethon".
 
-Local holdload is false. 
-until holdload = true {
-	Set holdload to true. //reset to true and rely on previous stage to turn false
-	local PROCESSOR_List is list().
-	LIST PROCESSORS IN PROCESSOR_List. // get a list of all connected cores
-	//Print PROCESSOR_List:length.
-	for Processor in PROCESSOR_List {
-		if Processor:TAG = boosterCPU{ //checks to see if previous stage is present
-			Set holdload to false.
-		}
-	}
-	wait 2.
-}
-
 Print "Locking resources".
 Local RSS_partlist is list().
 Local partlist is List().
@@ -34,6 +20,20 @@ For part in RSS_partlist{
 	For res in part:Resources{
 			Set res:enabled to False.
 	}
+}
+
+Local holdload is false. 
+until holdload = true {
+	Set holdload to true. //reset to true and rely on previous stage to turn false
+	local PROCESSOR_List is list().
+	LIST PROCESSORS IN PROCESSOR_List. // get a list of all connected cores
+	//Print PROCESSOR_List:length.
+	for Processor in PROCESSOR_List {
+		if Processor:TAG = boosterCPU{ //checks to see if previous stage is present
+			Set holdload to false.
+		}
+	}
+	wait 2.
 }
 
 Print "Cygnus 2 active".

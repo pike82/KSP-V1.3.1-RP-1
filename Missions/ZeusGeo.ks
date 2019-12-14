@@ -38,6 +38,7 @@ Global boosterCPU is "Aethon".
 
 Print "Stop burn at: " + endheight + "m".
 Print "Waiting for activation".
+Solar on.
 ff_avionics_off().
 //wait for active
 Local holdload is false. 
@@ -101,12 +102,12 @@ Until counter > 180{
 local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
-stage.
 warpto(startTime - 75).
 ff_avionics_on().
 wait until time:seconds > startTime - 70.
 lock steering to nextnode:deltav.
 RCS on.
+stage.
 wait 70.
 wait until time:seconds > startTime.
 Lock Throttle to 1.
