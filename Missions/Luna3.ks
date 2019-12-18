@@ -69,7 +69,7 @@ Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
 RCS off.
-Solar on.
+Panels on.
 ///unlock resources for use
 Print "Unlocking resources".
 Local RSS_partlist is list().
@@ -122,6 +122,7 @@ until hf_isManeuverComplete(transmnv) {
 lock throttle to 0.
 unlock steering.
 RCS off.
+Stage.//move to RCS engines
 remove transmnv.
 
 ////TODO: USe RCS final stage to make correction and slow down and hit the moon.
@@ -131,6 +132,7 @@ wait 5.
 ff_Avionics_off().
 warpto(corr_time - 25).
 ff_Avionics_on().
+Stage.//activate RCS engines
 until time:seconds > corr_time {
 	Wait 1.
 }
@@ -204,6 +206,13 @@ If ship:orbit:periapsis > endPE{
 	lock throttle to 0.
 	RCS off.
 }
+RCS on.
+Print "Maximising solar".
+lock steering to sun:position.//lock pointed towards the sun to maximise solar
+Wait 60.
+set ship:control:roll to 1.//spin stabilise in orbit
+Wait 10.
+RCS off.
 Print "PE Burn Setup".
 Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
 Print "Orb: " + orbspeed.

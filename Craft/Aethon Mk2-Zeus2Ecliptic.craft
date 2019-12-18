@@ -3454,7 +3454,7 @@ PART
 	sqor = 3
 	sepI = 2
 	attm = 0
-	modCost = -15
+	modCost = 1
 	modMass = -0.00399999321
 	modSize = 0,0,0
 	link = KzResizableFairingBaseRing_4292204502
@@ -3700,7 +3700,7 @@ PART
 	{
 		name = ModuleEngineConfigs
 		isEnabled = True
-		configuration = AJ10-42
+		configuration = AJ10-101A
 		techLevel = -1
 		thrustRating = maxThrust
 		modded = False

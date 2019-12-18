@@ -53,8 +53,8 @@ until holdload = true {
 	wait 0.2.
 }
 ff_avionics_on().
-Solar on.
-ff_Solar_on().
+Panels on.
+
 Print "Geo Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -521,12 +521,5 @@ Function ff_Avionics_on{
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
 	If M:HasEVENT("Activate Avionics"){
 		M:DOEVENT("Activate Avionics").
-	}
-}
-Function ff_Solar_on{
-	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
-	Local M is P:GETMODULE("ModuleDeployableSolarPanel").
-	If M:HasEVENT("Deploy Solar Panels"){
-		M:DOEVENT("Deploy Solar Panels").
 	}
 }

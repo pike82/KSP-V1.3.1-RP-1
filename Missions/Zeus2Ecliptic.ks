@@ -64,35 +64,9 @@ until holdload = true {
 	wait 0.2.
 }
 Print "Eliptic active".
-// Lock Horizon to VXCL(UP:VECTOR, VELOCITY:SURFACE). //negative velocity makes it retrograde
-// LOCK STEERING TO LOOKDIRUP(ANGLEAXIS(0,
-//             VCRS(horizon,BODY:POSITION))*horizon,
-// 			FACING:TOPVECTOR).//lock to prograde along horizon
-// RCS on.
-// SET SHIP:CONTROL:FORE TO 0.9.//start ullage using RCS
-// Wait 1.//move away from booster
-// SET SHIP:CONTROL:FORE to 0.
-// ff_COMMS().
-// //Circularise burn
-
-// until (ETA:apoapsis) < apwait{
-// 	wait 0.5.
-// }
-// SET SHIP:CONTROL:FORE TO 0.9.//start ullage using RCS
-// Wait until Stage:Ready.
-// wait 5.
-// Lock Throttle to 1.
-// SET SHIP:CONTROL:FORE to 0.
-// Stage.//start engine
-// until ship:periapsis > endheight{
-// 	Wait 0.1.
-// }
-// Lock Throttle to 0.
-// Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-// RCS off.
 
 //Adjust orbit to ecliptic
-
+Panels on.
 local start is 0.
 local startnode is 0.
 local transnode is 0.
@@ -108,7 +82,7 @@ set transnode to ff_seek(ff_freeze(start), 0, 0, ff_freeze(0), ff_ElipticLANScor
 Print "transnode complete".
 set transmnv to node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
 add transmnv.
-set startTime to time:seconds + nextnode:eta - ff_Burn_Time(nextnode:deltaV:mag/ 2, 267, 33, 1).
+set startTime to time:seconds + nextnode:eta - ff_Burn_Time(nextnode:deltaV:mag/ 2, 270, 33.4, 1).
 Print "burn starts at: " + startTime.
 Set warp to 0.
 wait until time:seconds > startTime - 60.
