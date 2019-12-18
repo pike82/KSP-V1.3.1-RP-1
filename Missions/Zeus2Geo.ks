@@ -38,7 +38,6 @@ Global boosterCPU is "Aethon".
 
 Print "Stop burn at: " + endheight + "m".
 Print "Waiting for activation".
-Solar on.
 ff_avionics_off().
 //wait for active
 Local holdload is false. 
@@ -54,6 +53,8 @@ until holdload = true {
 	wait 0.2.
 }
 ff_avionics_on().
+Solar on.
+ff_Solar_on().
 Print "Geo Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
@@ -179,7 +180,7 @@ remove nextnode.
 ff_avionics_off().
 //Geo inclination refine
 
-Local transnode is ff_GeoTransfer ().
+Local transnode is ff_GeoTransfer().
 Local counter is 0.
 Until counter > 180{
 	Clearscreen.
@@ -242,7 +243,7 @@ function ff_Transfer {
 
 function ff_LowerTransfer {
 	Local start is time:seconds + eta:apoapsis.
-	local transfer is ff_seek(ff_freeze(Start), ff_freeze(0), 0, 0, hf_LowScore@).
+	local transfer is ff_seek(ff_freeze(Start), ff_freeze(0), 0, 550, hf_LowScore@).
 	return transfer.
 }
 
@@ -520,5 +521,12 @@ Function ff_Avionics_on{
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
 	If M:HasEVENT("Activate Avionics"){
 		M:DOEVENT("Activate Avionics").
+	}
+}
+Function ff_Solar_on{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleDeployableSolarPanel").
+	If M:HasEVENT("Deploy Solar Panels"){
+		M:DOEVENT("Deploy Solar Panels").
 	}
 }

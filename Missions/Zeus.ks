@@ -186,8 +186,11 @@ FUNCTION ff_COMMS {
 function ff_Transfer {
 	local predictUT is time:seconds + 10.
 	local futurePos is ship:altitude.
+	Local futurePos_old is ship:altitude -10.
 	Until futurePos > endheight{
 		set futurePos to ship:body:altitudeOf(positionat(ship, predictUT)).
+		If futurePos < futurePos_old{Break.} //AP is not high enough
+		Set futurePos_old to futurePos.
 		Set predictUT to predictUT + 5.
 		print "predictUT: " + predictUT + "futurePos: " + futurePos.
 	}

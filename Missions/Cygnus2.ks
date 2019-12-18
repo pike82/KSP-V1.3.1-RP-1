@@ -37,7 +37,7 @@ until holdload = true {
 }
 
 Print "Cygnus 2 active".
-wait 180.
+wait 20.
 Print "Turn on RCS to commence De-orbit".
 Lock steering to retrograde.
 Until RCS {

@@ -1,10 +1,9 @@
 // Get Mission Values
 
-///mission for moon flyby's and impactor
-
 local wndw is gui(300).
 set wndw:x to 700. //window start position
 set wndw:y to 120.
+
 Print "Locking resources".
 Local RSS_partlist is list().
 Local partlist is List().
@@ -20,14 +19,13 @@ For part in RSS_partlist{
 			Set res:enabled to false.
 	}
 }
-
 local label is wndw:ADDLABEL("Enter Mission Values").
 set label:STYLE:ALIGN TO "CENTER".
 set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_MoonEND is wndw:addhlayout().
 	local MoonEND_label is box_MoonEND:addlabel("Moon PE END (km)").
-	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("50").
+	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("100").
 	set MoonENDvalue:style:width to 100.
 	set MoonENDvalue:style:height to 18.
 
@@ -37,7 +35,6 @@ set somebutton:onclick to Continue@.
 // Show the GUI.
 wndw:SHOW().
 LOCAL isDone IS FALSE.
-
 UNTIL isDone {
 	WAIT 1.
 }
@@ -51,7 +48,6 @@ Function Continue {
 	wndw:hide().
   	set isDone to true.
 }
-
 Global boosterCPU is "Aethon".
 
 Print "Waiting for activation".
@@ -68,13 +64,12 @@ until holdload = true {
 	}
 	wait 0.2.
 }
-Print "Luna active".
-LOCK STEERING TO PROGRADE.
+Print "Luna2 active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
 RCS off.
-
+Solar on.
 ///unlock resources for use
 Print "Unlocking resources".
 Local RSS_partlist is list().
@@ -92,23 +87,24 @@ For part in RSS_partlist{
 	}
 }
 wait 1.
+
 ////TODO: USe RCS to align with moon via transfer@ then shoot then ullage and burn to moon.
 Local transnode is ff_transfer(moon).
 local transmnv is node(transnode[0], transnode[1], transnode[2], transnode[3]).
 add transmnv.
-local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:mag, 267, 33, 1) / 2).
-Print time:seconds + transmnv:eta.
-Print transmnv:eta.
-Print transmnv:deltaV:mag.
-Print (ff_Burn_Time(transmnv:deltaV:mag, 267, 33, 1) / 2).
+local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:mag, 270, 33.4, 1) / 2).
 Print "burn starts at: " + startTime.
-wait until time:seconds > startTime - 180.
-Set warp to 0.
+Print nextnode:orbit:nextPatch:inclination.
+wait 5.
+ff_Avionics_off().
+warpto(startTime - 150).
+wait until time:seconds > startTime - 120.
+ff_Avionics_on().
 RCS on.
 lock steering to transmnv:burnvector.
-wait until time:seconds > startTime-3.//RCS ullage Start
+wait until time:seconds > startTime-10.//RCS ullage Start
 lock throttle to 1.
-wait 3.
+wait 10.
 Wait until Stage:Ready.
 stage.//Start main engines
 until hf_isManeuverComplete(transmnv) {
@@ -117,8 +113,9 @@ until hf_isManeuverComplete(transmnv) {
 			Break.
 		}
 	}
-	if AVAILABLETHRUST < 1{
-		Break.
+	if AVAILABLETHRUST < 0.1{
+		Stage.
+		Wait 1.
 	}
   wait 0.001.
 }
@@ -126,38 +123,115 @@ lock throttle to 0.
 unlock steering.
 RCS off.
 remove transmnv.
+
+////TODO: USe RCS final stage to make correction and slow down and hit the moon.
+Local corr_time is time:seconds + (ship:orbit:nextPatchEta / 2).
+Print "Correction man at:" + corr_time.
 wait 5.
-Local curr_time is time:seconds.
-local transfer is list(curr_time + 600, 0, 0, 50).
-Local transnode is hf_improveConverge(transfer, hf_protectFromPast(hf_moonTransferScore@, moon)).
+ff_Avionics_off().
+warpto(corr_time - 25).
+ff_Avionics_on().
+until time:seconds > corr_time {
+	Wait 1.
+}
+Local transnode is ff_transfer(moon, 0).
 local transmnv is node(transnode[0], transnode[1], transnode[2], transnode[3]).
 add transmnv.
-Wait 30.
+local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:mag, 198, 1, 1) / 2).
+Print "burn starts at: " + startTime.
+wait 5.
+ff_Avionics_off().
+warpto(startTime - 25).
+ff_Avionics_on().
+wait until time:seconds > startTime - 20.
 RCS on.
 lock steering to transmnv:burnvector.
-wait 60.
-SET SHIP:CONTROL:FORE to 1.
-until false {
+wait until time:seconds > startTime.
+lock throttle to 1.
+until hf_isManeuverComplete(transmnv) {
 		if ship:orbit:HASNEXTPATCH {
-			Print "target height:" + ship:orbit:nextPatch:periapsis.
 			if ship:orbit:nextPatch:periapsis < endPE {
 				Break.
 			}
-		}
-  wait 1.
+	}
+  wait 0.001.
 }
-SET SHIP:CONTROL:FORE to 0.
+lock throttle to 0.
 unlock steering.
-remove transmnv.
-wait 400.
-Print "Maximising solar".
-lock steering to sun:position.//lock pointed towards the sun to maximise solar
-Wait 60.
-set ship:control:roll to 1.//spin stabilise in orbit
-Wait 30.
 RCS off.
-Stage.
-Wait 5.
+remove transmnv.
+
+Set corr_time to time:seconds + ship:orbit:nextPatchEta.
+wait 5.
+ff_Avionics_off().
+warpto(corr_time - 25).
+ff_Avionics_on().
+until time:seconds +60 > corr_time {
+	Wait 1.
+}
+
+Print "In SOI correction burn".
+wait 60.
+
+local normalVec is vcrs(ship:velocity:orbit,-body:position).
+local radialVec is vcrs(ship:velocity:orbit,normalVec).
+Print "Waiting for PE burn".
+
+// Lock sinc to ship:orbit:inclination.
+
+If ship:orbit:periapsis < endPE{
+	Print "PE Change".
+	RCS on.
+	lock Steering to -radialVec.
+	wait 20.
+	lock throttle to 1.
+	Until ship:orbit:periapsis > endPE{
+		Wait 0.01.
+	}
+	lock throttle to 0.
+	RCS off.
+}
+wait 1.0.
+If ship:orbit:periapsis > endPE{
+	Print "PE Change 2".
+	RCS on.
+	lock Steering to radialVec.
+	wait 20.
+	lock throttle to 1.
+	Until ship:orbit:periapsis > endPE{
+		Wait 0.01.
+	}
+	lock throttle to 0.
+	RCS off.
+}
+Print "PE Burn Setup".
+Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
+Print "Orb: " + orbspeed.
+Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag.
+Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(abs(Burnspeed), 198, 1, 1) / 2).
+Print "Dv: " +BurnSpeed.
+Print corr_time. 
+Set corr_time to time:seconds + eta:periapsis - 240.
+wait 5.
+ff_Avionics_off().
+warpto(corr_time - 300).
+ff_Avionics_on().
+Print "Starting PE Burn".
+Lock steering to retrograde.
+RCS on.
+Until (time:seconds > corr_time){
+	Wait 1.
+}
+Print "Throttle up".
+lock throttle to 1.
+Print AVAILABLETHRUST.
+until ((ship:orbit:apoapsis < 1.2*endPE) and (ship:orbit:apoapsis > 0))  or ((AVAILABLETHRUST*1000) < 1) or(ship:orbit:periapsis < 50000){
+	wait 0.1.
+}
+lock throttle to 0.
+RCS off.
+ff_Avionics_off().
+wait 400.
 Shutdown.
 
 ////TODO: Fix up below to allow transfer to specific PE and inclination
@@ -180,7 +254,7 @@ function ff_Transfer {
     hf_angleToMoon@, target,
     start, end, 1
   ).
-  local transfer is list(startSearchTime, 0, 0, first_est).// RADIALOUT, NORMAL, PROGRADE TODO: undertake homman trans fer calc to get intial prograge value to deduce find time.
+  local transfer is list(startSearchTime, 0, 0, first_est).// RADIALOUT, NORMAL, PROGRADE 
   set transfer to hf_improveConverge(transfer, hf_protectFromPast(hf_moonTransferScore@, target)).
   return transfer.
 }
@@ -199,7 +273,7 @@ function hf_moonTransferScore {
   add mnv.
   local result is 0.
   if mnv:orbit:hasNextPatch {
-    set result to mnv:orbit:nextPatch:periapsis.// + (mnv:orbit:nextPatch:inclination*10).
+    set result to abs(mnv:orbit:nextPatch:periapsis - endPE) - (mnv:orbit:nextPatch:inclination*100).
   } else {
     set result to hf_distanceToMoonAtApoapsis(mnv, target).
   }
@@ -506,3 +580,18 @@ FUNCTION ff_COMMS {
 	}
 } // End of Function
 
+Function ff_Avionics_off{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleProceduralAvionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
+}
+
+Function ff_Avionics_on{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleProceduralAvionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
+}

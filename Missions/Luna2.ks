@@ -69,7 +69,7 @@ Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
 RCS off.
-
+Solar on.
 ///unlock resources for use
 Print "Unlocking resources".
 Local RSS_partlist is list().
