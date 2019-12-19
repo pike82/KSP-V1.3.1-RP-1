@@ -8,18 +8,6 @@ local label is wndw:ADDLABEL("Enter Mission Values").
 set label:STYLE:ALIGN TO "CENTER".
 set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
-local box_WAIT is wndw:addhlayout().
-	local WAIT_label is box_WAIT:addlabel("AP WAIT").
-	local WAITvalue is box_WAIT:ADDTEXTFIELD("35").
-	set WAITvalue:style:width to 100.
-	set WAITvalue:style:height to 18.
-
-local box_END is wndw:addhlayout().
-	local END_label is box_END:addlabel("PE END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("160").
-	set ENDvalue:style:width to 100.
-	set ENDvalue:style:height to 18.
-
 local box_MoonEND is wndw:addhlayout().
 	local MoonEND_label is box_MoonEND:addlabel("Planet PE END (km)").
 	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("200").
@@ -50,14 +38,6 @@ UNTIL isDone {
 
 Function Continue {
 
-		set val to WAITvalue:text.
-		set val to val:tonumber(0).
-		set apwait to val.
-		
-		set val to ENDvalue:text.
-		set val to val:tonumber(0).
-		set endheight to val*1000.
-
 		set val to MoonENDvalue:text.
 		set val to val:tonumber(0).
 		set endPE to val*1000.
@@ -74,7 +54,7 @@ Function Continue {
   	set isDone to true.
 }
 
-Global boosterCPU is "Aethon2".
+Global boosterCPU is "Aethon".
 
 If runmode = 0{
 
@@ -96,35 +76,9 @@ If runmode = 0{
 	Lock Throttle to 0.
 	Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 	ff_COMMS().
-	RCS on.
-	wait 10.
-	//Circularise burn
-	Lock Horizon to VXCL(UP:VECTOR, VELOCITY:SURFACE). //negative velocity makes it retrograde
-	LOCK STEERING TO LOOKDIRUP(ANGLEAXIS(0,
-				VCRS(horizon,BODY:POSITION))*horizon,
-				FACING:TOPVECTOR).//lock to prograde along horizon
-
-	until (ETA:apoapsis) < apwait{
-		wait 0.5.
-	}
-	Lock Throttle to 1.//start ullage
-	wait 5.
-	Stage.//start engine
-	until ship:periapsis > endheight{
-		Wait 0.1.
-	}
-	Local englist is List().
-	LIST ENGINES IN engList. 
-	FOR eng IN engList {  
-		Print "eng:STAGE:" + eng:STAGE.
-		Print STAGE:NUMBER.
-		IF eng:STAGE >= STAGE:NUMBER { 
-				eng:shutdown. 
-		}
-	}
-	Print "Engine shutdown".
-	Lock Throttle to 0.
+	Panels on.
 	RCS off.
+	wait 10.
 	Set runmode to 1.
 	ff_Avionics_off().	
 }
@@ -147,7 +101,7 @@ If runmode = 1.5{
 }
 
 If runmode = 2{
-	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 278, 35.1, 1)).
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 276, 67, 1)).
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 120.
@@ -567,7 +521,8 @@ FUNCTION ff_COMMS {
 				if antenna:HASFIELD("target"){
 					antenna:Setfield("target", "Earth").
 				}
-				PRINT event + " Antennas".
+				//PRINT "Antennas locations and distance".
+				//PRINT event.
 				WAIT stageWait.
 			}	
 		}.
@@ -577,11 +532,15 @@ FUNCTION ff_COMMS {
 Function ff_Avionics_off{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Shutdown Avionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
 }
 
 Function ff_Avionics_on{
 	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
 	Local M is P:GETMODULE("ModuleProceduralAvionics").
-	M:DOEVENT("Activate Avionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
 }

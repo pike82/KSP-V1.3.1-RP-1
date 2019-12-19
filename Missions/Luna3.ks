@@ -25,7 +25,7 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_MoonEND is wndw:addhlayout().
 	local MoonEND_label is box_MoonEND:addlabel("Moon PE END (km)").
-	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("100").
+	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("120").
 	set MoonENDvalue:style:width to 100.
 	set MoonENDvalue:style:height to 18.
 
@@ -64,7 +64,7 @@ until holdload = true {
 	}
 	wait 0.2.
 }
-Print "Luna2 active".
+Print "Luna3 active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 ff_COMMS().
@@ -212,6 +212,7 @@ lock steering to sun:position.//lock pointed towards the sun to maximise solar
 Wait 60.
 set ship:control:roll to 1.//spin stabilise in orbit
 Wait 10.
+set ship:control:roll to 0.//stop spin stabilise in orbit
 RCS off.
 Print "PE Burn Setup".
 Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
