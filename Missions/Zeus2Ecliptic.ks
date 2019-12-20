@@ -4,50 +4,8 @@ local wndw is gui(300).
 set wndw:x to 700. //window start position
 set wndw:y to 120.
 
-local label is wndw:ADDLABEL("Enter Mission Values").
-set label:STYLE:ALIGN TO "CENTER".
-set label:STYLE:HSTRETCH TO True. // Fill horizontally
-
-local box_WAIT is wndw:addhlayout().
-	local WAIT_label is box_WAIT:addlabel("AP WAIT").
-	local WAITvalue is box_WAIT:ADDTEXTFIELD("55").
-	set WAITvalue:style:width to 100.
-	set WAITvalue:style:height to 18.
-
-local box_END is wndw:addhlayout().
-	local END_label is box_END:addlabel("PE END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("170").
-	set ENDvalue:style:width to 100.
-	set ENDvalue:style:height to 18.
-
-local somebutton is wndw:addbutton("Confirm").
-set somebutton:onclick to Continue@.
-
-// Show the GUI.
-wndw:SHOW().
-LOCAL isDone IS FALSE.
-UNTIL isDone {
-	WAIT 1.
-}
-
-Function Continue {
-
-		set val to WAITvalue:text.
-		set val to val:tonumber(0).
-		set apwait to val.
-
-		set val to ENDvalue:text.
-		set val to val:tonumber(0).
-		set endheight to val*1000.
-
-	wndw:hide().
-  	set isDone to true.
-}
-
 Global boosterCPU is "Aethon".
 
-Print "Restart before AP: " + apwait + "s".
-Print "Stop burn at: " + endheight + "m".
 Print "Waiting for activation".
 //wait for active
 
@@ -65,41 +23,40 @@ until holdload = true {
 }
 Print "Eliptic active".
 
-//Adjust orbit to ecliptic
+//Circularise
 Panels on.
 local start is 0.
 local startnode is 0.
 local transnode is 0.
 local transmnv is 0.
 local startTime is 0.
-//find highest LAT for LAN change
-set start to orbit:period/2 + time:seconds + 60.
-set startnode to ff_seek(start, ff_freeze(0), ff_freeze(0), ff_freeze(0), ff_LANTimeScore@).
-remove nextnode.
+
 // find manv deltav at that time.
-Set start to startnode[0].
-set transnode to ff_seek(ff_freeze(start), 0, 0, ff_freeze(0), ff_ElipticLANScore@).
+Set start to time:seconds + eta:apoapsis.
+set transnode to ff_seek(ff_freeze(start), ff_freeze(0), ff_freeze(0), 0, hf_CircScore@ ).
 Print "transnode complete".
 set transmnv to node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
 add transmnv.
-set startTime to time:seconds + nextnode:eta - ff_Burn_Time(nextnode:deltaV:mag/ 2, 270, 33.4, 1).
+set startTime to time:seconds + nextnode:eta - ff_Burn_Time(nextnode:deltaV:mag/ 2, 267, 33, 1).
 Print "burn starts at: " + startTime.
 Set warp to 0.
 wait until time:seconds > startTime - 60.
 RCS on.
 lock steering to nextnode:burnvector.
+Wait 50.
+Lock Throttle to 1. //RCS ullage
 wait until time:seconds > startTime.
-lock throttle to 1.
-Local englist is List().
-LIST ENGINES IN engList. 
-FOR eng IN engList {  
-	Print "eng:STAGE:" + eng:STAGE.
-	Print STAGE:NUMBER.
-	IF eng:STAGE >= STAGE:NUMBER { 
-		eng:activate. 
-		Print "Engine". 
-	}
-}
+Stage. //start engine
+// Local englist is List().
+// LIST ENGINES IN engList. 
+// FOR eng IN engList {  
+// 	Print "eng:STAGE:" + eng:STAGE.
+// 	Print STAGE:NUMBER.
+// 	IF eng:STAGE >= STAGE:NUMBER { 
+// 		eng:activate. 
+// 		Print "Engine". 
+// 	}
+// }
 until (hf_isManeuverComplete(nextnode) = true) or (nextnode:burnvector:mag < 0.25) {
 }
 lock throttle to 0.
@@ -109,6 +66,34 @@ remove nextnode.
 wait 1.
 Stage. //move to RCS
 
+//Adjust orbit to ecliptic
+
+//find highest LAT for LAN change
+set start to (orbit:period/2) + time:seconds + 120. // search for next highest LAT not the one behind you.
+set startnode to ff_seek(start, ff_freeze(0), ff_freeze(0), ff_freeze(0), ff_LANTimeScore@).
+remove nextnode.
+// find manv deltav at that time.
+Set start to startnode[0].
+set transnode to ff_seek(ff_freeze(start), 0, 0, ff_freeze(0), ff_ElipticLANScore@).
+Print "transnode complete".
+set transmnv to node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
+add transmnv.
+set startTime to time:seconds + nextnode:eta - ff_Burn_Time(nextnode:deltaV:mag/ 2, 198, 0.957, 1).
+Print "burn starts at: " + startTime.
+Set warp to 0.
+wait until time:seconds > startTime - 60.
+RCS on.
+lock steering to nextnode:burnvector.
+wait until time:seconds > startTime.
+Stage. //start RCS engine
+Lock Throttle to 1.
+until (hf_isManeuverComplete(nextnode) = true) or (nextnode:burnvector:mag < 0.25) {
+}
+lock throttle to 0.
+unlock steering.
+RCS off.
+remove nextnode.
+wait 1.
 
 //Change inclination but not LAN
 //find highest LAT for LAN change
@@ -147,7 +132,7 @@ function ff_LANTimeScore {
 	local result is 0.
 	Local t is mnv:eta + time:seconds.
 	set result to Body:GEOPOSITIONOF(positionAT(ship, t)).
-	set result to result:lat. //want highest lat.
+	set result to abs(result:lat). //want highest lat.
 	return result.
 }
 
@@ -177,6 +162,14 @@ function ff_ElipticIncScore {
 	Set result to result-abs(nextnode:deltav:mag/10000).
   	return result.
 } 
+
+function hf_CircScore{
+  parameter mnv.
+  Local result is 0.
+	Local result is -100*mnv:orbit:eccentricity.
+	Print result.
+  return result.
+}
 
 function ff_freeze {
 	parameter n. 

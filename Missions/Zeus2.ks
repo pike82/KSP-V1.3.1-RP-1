@@ -74,7 +74,6 @@ until holdload = true {
 Print "Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-ff_COMMS().
 
 If endSun = true{
 	lock steering to Prograde. 
@@ -133,6 +132,7 @@ RCS off.
 wait 0.001.
 remove nextnode.
 wait 1.0.
+Stage.//move to RCS engine
 Print "Waiting for AP".
 wait 15.
 
@@ -147,6 +147,7 @@ wait until time:seconds > startTime - 70.
 lock steering to nextnode:deltav.
 ff_Avionics_on().
 RCS on.
+Stage.//activate RCS engine
 wait 70.
 wait until time:seconds > startTime.
 Print "RCS Throttle up".
@@ -161,8 +162,9 @@ Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 unlock steering.
 RCS off.
 remove nextnode.
-Stage.
-wait 400.
+ff_COMMS().
+ff_Avionics_off().
+wait 40.
 Shutdown.
 
 FUNCTION ff_COMMS {

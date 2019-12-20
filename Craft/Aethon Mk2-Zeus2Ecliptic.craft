@@ -218,7 +218,7 @@ PART
 	{
 		name = KOSNameTag
 		isEnabled = True
-		nameTag = Ecliptic
+		nameTag = Zeus2Ecliptic
 		stagingEnabled = True
 		EVENTS
 		{
