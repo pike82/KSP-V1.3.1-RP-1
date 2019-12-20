@@ -111,16 +111,17 @@ If runmode = 2{
 	wait until time:seconds > startTime-10.//RCS ullage Start
 	SET SHIP:CONTROL:FORE TO 0.8.
 	wait 10.
-	Local englist is List().
-	LIST ENGINES IN engList. 
-	FOR eng IN engList {  
-		Print "eng:STAGE:" + eng:STAGE.
-		Print STAGE:NUMBER.
-		IF eng:STAGE >= STAGE:NUMBER { 
-			eng:activate. 
-			Print "Engine". 
-		}
-	}
+	Stage. // activate engine
+	// Local englist is List().
+	// LIST ENGINES IN engList. 
+	// FOR eng IN engList {  
+	// 	Print "eng:STAGE:" + eng:STAGE.
+	// 	Print STAGE:NUMBER.
+	// 	IF eng:STAGE >= STAGE:NUMBER { 
+	// 		eng:activate. 
+	// 		Print "Engine". 
+	// 	}
+	// }
 	lock throttle to 1.
 	SET SHIP:CONTROL:FORE TO 0.0.
 	until hf_isManeuverComplete(nextnode) {
