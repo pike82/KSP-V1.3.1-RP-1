@@ -122,6 +122,7 @@ until hf_isManeuverComplete(transmnv) {
 lock throttle to 0.
 unlock steering.
 RCS off.
+wait 1.
 Stage.//move to RCS engines
 remove transmnv.
 
@@ -143,10 +144,10 @@ local startTime is time:seconds + transmnv:eta - (ff_Burn_Time(transmnv:deltaV:m
 Print "burn starts at: " + startTime.
 wait 5.
 ff_Avionics_off().
-warpto(startTime - 25).
+warpto(startTime - 50).
 ff_Avionics_on().
-wait until time:seconds > startTime - 20.
 RCS on.
+wait until time:seconds > startTime - 45.
 lock steering to transmnv:burnvector.
 wait until time:seconds > startTime.
 lock throttle to 1.
@@ -248,7 +249,7 @@ Shutdown.
 
 function ff_Transfer {
   Parameter target, First_Est is ff_Hohmann(moon). //
-	Local start is time:seconds + 60.
+	Local start is time:seconds + 120.
 	Local end is time:seconds + 10000.
 	If orbit:apoapsis <0{ // orbit period = inf
 		Set end to time:seconds + 60 + 400.
