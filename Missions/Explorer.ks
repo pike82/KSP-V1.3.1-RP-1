@@ -134,6 +134,9 @@ If runmode = 2{
 	remove nextnode.
 	Set runmode to 2.5.
 	ff_Avionics_off().
+	Stage. //release engine
+	wait 1.
+	Stage. //activate RCS engine
 }
 
 If runmode = 2.5{
@@ -163,7 +166,7 @@ If runmode = 3.5{
 }
 
 If runmode = 4{
-	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 198, 0.1, 1)).
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 198, 1, 1)).
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 60.
@@ -236,7 +239,7 @@ If Runmode = 6{
 	Print "PE Burn Setup".
 	Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
 	Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag - orbspeed.
-	Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(BurnSpeed / 2, 278, 35.1, 1)).
+	Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(BurnSpeed / 2, 198, 1, 1)).
 	Print "Dv: " +BurnSpeed.
 	Print corr_time. 
 	wait 5.
@@ -247,7 +250,7 @@ If Runmode = 6{
 		wait 1.
 		Set Counter to counter +1.
 	}
-	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(BurnSpeed / 2, 278, 35.1, 1)).
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(BurnSpeed / 2, 198, 1, 1)).
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 70.
