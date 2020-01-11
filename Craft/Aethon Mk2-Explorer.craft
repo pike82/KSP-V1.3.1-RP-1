@@ -974,8 +974,8 @@ PART
 		name = kOSProcessor
 		isEnabled = True
 		bootFile = /boot/MissionBoot.ks
-		diskSpace = 20000
-		baseDiskSpace = 5000
+		diskSpace = 25000
+		baseDiskSpace = 25000
 		baseModuleMass = 0
 		additionalCost = 366
 		MaxPartId = 100

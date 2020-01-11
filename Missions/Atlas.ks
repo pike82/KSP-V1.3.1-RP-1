@@ -122,17 +122,17 @@ If runmode = 2.5{
 }
 
 If runmode = 3{
-	local startTime is time:seconds + nextnode:eta.
+	local startTime is time:seconds + nextnode:eta - 33.
 	Print "burn starts at: " + startTime.
 	wait 5.
-	wait until time:seconds > startTime - 90.
+	wait until time:seconds > startTime - 60.
 	RCS on.
 	lock steering to nextnode:burnvector.
 	wait until time:seconds > startTime.
 	lock throttle to 1.
 	Wait until Stage:Ready.
 	stage.//Start retro rockets
-	Wait 5.
+	Wait 66.
 	lock throttle to 0.
 	unlock steering.
 	RCS off.
@@ -222,7 +222,7 @@ function ff_Transfer {
 Parameter targ. //
 	Local startSearchTime is time:seconds + 120.
 	Global Scorebound is hf_LandOnPlanetscore@:bind(targ).
-  	set transfer to ff_seek(startSearchTime, ff_freeze(0), ff_freeze(0), ff_freeze(-55), Scorebound). 
+  	set transfer to ff_seek(startSearchTime, ff_freeze(0), ff_freeze(0), ff_freeze(-177), Scorebound). //the 55 is the known thrust but this can be changed if the amount is changed.
   	return transfer.
 }
 

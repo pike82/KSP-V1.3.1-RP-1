@@ -31,7 +31,7 @@ local box_MoonEND_s is wndw:addhlayout().
 
 local box_MoonEND is wndw:addhlayout().
 	local MoonEND_label is box_MoonEND:addlabel("Moon PE km").
-	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("35").
+	local MoonENDvalue is box_MoonEND:ADDTEXTFIELD("30").
 	set MoonENDvalue:style:width to 100.
 	set MoonENDvalue:style:height to 18.
 
@@ -263,45 +263,48 @@ If runmode = 3{
 	set runmode to 4.
 }
 If runmode = 4{
-	Set corr_time to time:seconds + (ship:orbit:nextPatchEta).
-	until time:seconds +60 > corr_time {
-		Wait 1.
-	}
-	Print "In SOI: " + time:clock.
-	wait 180.
-	local normalVec is vcrs(ship:velocity:orbit,-body:position).
-	local radialVec is vcrs(ship:velocity:orbit,normalVec).
-	Print "Waiting for PE burn".
+	// Set corr_time to time:seconds + (ship:orbit:nextPatchEta).
+	// until time:seconds +60 > corr_time {
+	// 	Wait 1.
+	// }
+	// until orbit:body = moon{
+	// 	wait 1.0.
+	// }
+	// Print "In SOI: " + time:clock.
+	// wait 180.
+	// local normalVec is vcrs(ship:velocity:orbit,-body:position).
+	// local radialVec is vcrs(ship:velocity:orbit,normalVec).
+	// Print "Waiting for PE burn".
 
-	// Lock sinc to ship:orbit:inclination.
-	ff_avionics_on().
-	If ship:orbit:periapsis < endPE{
-		Print "PE Change".
-		RCS on.
-		lock Steering to -radialVec.
-		wait 60.
-		SET SHIP:CONTROL:FORE to 1.
-		Until ship:orbit:periapsis > endPE{
-			Wait 0.01.
-		}
-		SET SHIP:CONTROL:FORE to 0.
-		RCS off.
-	}
-	wait 5.0.
-	If ship:orbit:periapsis > endPE{
-		Print "PE Change 2".
-		RCS on.
-		lock Steering to radialVec.
-		wait 60.
-		SET SHIP:CONTROL:FORE to 1.
-		Until ship:orbit:periapsis > endPE{
-			Wait 0.01.
-		}
-		SET SHIP:CONTROL:FORE to 0.
-		RCS off.
-	}
-	RCS off.
-	ff_avionics_off().
+	// // Lock sinc to ship:orbit:inclination.
+	// ff_avionics_on().
+	// If ship:orbit:periapsis < endPE{
+	// 	Print "PE Change".
+	// 	RCS on.
+	// 	lock Steering to -radialVec.
+	// 	wait 60.
+	// 	SET SHIP:CONTROL:FORE to 1.
+	// 	Until ship:orbit:periapsis > endPE{
+	// 		Wait 0.01.
+	// 	}
+	// 	SET SHIP:CONTROL:FORE to 0.
+	// 	RCS off.
+	// }
+	// wait 5.0.
+	// If ship:orbit:periapsis > endPE{
+	// 	Print "PE Change 2".
+	// 	RCS on.
+	// 	lock Steering to radialVec.
+	// 	wait 60.
+	// 	SET SHIP:CONTROL:FORE to 1.
+	// 	Until ship:orbit:periapsis > endPE{
+	// 		Wait 0.01.
+	// 	}
+	// 	SET SHIP:CONTROL:FORE to 0.
+	// 	RCS off.
+	// }
+	// RCS off.
+	// ff_avionics_off().
 	set runmode to 5.
 }
 If runmode = 5{
@@ -323,6 +326,7 @@ If runmode = 5{
 	Print corr_time. 
 	wait 5.
 	warpto (corr_time-180).
+	wait 15.
 	ff_avionics_on().
 	Lock steering to retrograde.
 	RCS on.
@@ -684,7 +688,7 @@ Function ff_CAB{
 	}
 	Lock steering to retrograde.
 	Print "Canceling ground speed".
-	Until SHIP:GROUNDSPEED < 10 {
+	Until SHIP:GROUNDSPEED < 5 {
 		wait 0.01.
 	}
 	Lock Throttle to 0.0.
@@ -719,7 +723,7 @@ Function ff_SuBurn {
 		if abs(verticalspeed) < 20 {
 			LOCK STEERING to HEADING(90,90). // Lock in upright posistion and fixed rotation
 		}.
-		if ((ship:Altitude - SHIP:GEOPOSITION:TERRAINHEIGHT) < 0.25) or (Ship:Status = "LANDED") or (SafeAlt > 5) { // this is used if the burn is intended to land the craft.
+		if (((ship:Altitude - SHIP:GEOPOSITION:TERRAINHEIGHT) < 0.25) or (Ship:Status = "LANDED")) and (SafeAlt < 10) { // this is used if the burn is intended to land the craft.
 			Lock Throttle to 0.
 			Unlock Throttle.
 			Break.
