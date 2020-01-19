@@ -125,7 +125,7 @@ If runmode = 2{
 	lock throttle to 1.
 	SET SHIP:CONTROL:FORE TO 0.0.
 	until hf_isManeuverComplete(nextnode) {
-		if AVAILABLETHRUST < 1 {Stage.}
+	//if AVAILABLETHRUST < 1 {Stage. wait 1.}
 	  	wait 0.01.
 	}
 	lock throttle to 0.

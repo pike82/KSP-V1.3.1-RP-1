@@ -125,7 +125,7 @@ If runmode = 3{
 	local startTime is time:seconds + nextnode:eta - 33.
 	Print "burn starts at: " + startTime.
 	wait 5.
-	wait until time:seconds > startTime - 60.
+	wait until time:seconds > startTime - 120.
 	RCS on.
 	lock steering to nextnode:burnvector.
 	wait until time:seconds > startTime.
