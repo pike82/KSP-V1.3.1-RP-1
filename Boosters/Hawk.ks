@@ -22,7 +22,7 @@ local box_inc is wndw:addhlayout().
 
 local box_pitch is wndw:addhlayout().
 	local pitch_label is box_pitch:addlabel("Start Pitch").
-	local pitchvalue is box_pitch:ADDTEXTFIELD("85.25").
+	local pitchvalue is box_pitch:ADDTEXTFIELD("85.35").
 	set pitchvalue:style:width to 100.
 	set pitchvalue:style:height to 18.
 
@@ -141,7 +141,7 @@ until CurrEngineThrust > 0.99*MaxEngineThrust{
 			SET CurrEngineThrust TO CurrEngineThrust + eng:THRUST. 
 		}
 	}
-	if (TIME:SECONDS - EngineStartTime) > 5 {
+	if (TIME:SECONDS - EngineStartTime) > 10 {
 		Lock Throttle to 0.
 		Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 		Print "Engine Start up Failed...Making Safe".
@@ -188,6 +188,8 @@ Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 wait 1.0.
 Print "Orbit Reached".
+// Auto Change the name tag of the probe.
+Set CORE:Part:Tag to "Nil".
 Shutdown. //ends the script
 
 function ff_launchwindow{

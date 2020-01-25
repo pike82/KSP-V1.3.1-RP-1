@@ -222,7 +222,7 @@ function ff_Transfer {
 Parameter targ. //
 	Local startSearchTime is time:seconds + 120.
 	Global Scorebound is hf_LandOnPlanetscore@:bind(targ).
-  	set transfer to ff_seek(startSearchTime, ff_freeze(0), ff_freeze(0), ff_freeze(-177), Scorebound). //the 55 is the known thrust but this can be changed if the amount is changed.
+  	set transfer to ff_seek(startSearchTime, ff_freeze(0), ff_freeze(0), ff_freeze(-157), Scorebound). //the 55 is the known thrust but this can be changed if the amount is changed.
   	return transfer.
 }
 

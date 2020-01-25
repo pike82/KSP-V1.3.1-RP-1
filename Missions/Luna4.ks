@@ -318,7 +318,7 @@ If runmode = 5{
 	Print velocityat(Ship:Body, eta:periapsis):orbit:mag.
 	Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag - orbspeed.
 	If ship:periapsis < 0 {
-		set endPE_s to 6000.// if pe underground need to commence burn atleast 10 minutes away from PE.
+		set endPE_s to 180.// if pe underground need to commence burn atleast 3 minutes away from PE. If it can't do this it will not have enough fuel.
 	}
 	Set corr_time to (time:seconds + eta:periapsis - endPE_s).
 	Print eta:periapsis.
@@ -645,7 +645,7 @@ Function ff_CAB{
 		wait 0.001.
 	}
 	
-	Set PIDVV to PIDLOOP(0.03, 0, 0.05, -0.1, 0.1).//SET PID TO PIDLOOP(KP, KI, KD, MINOUTPUT, MAXOUTPUT).	
+	Set PIDVV to PIDLOOP(0.03, 0, 0.1, -0.1, 0.1).//SET PID TO PIDLOOP(KP, KI, KD, MINOUTPUT, MAXOUTPUT).	
 	Set PIDVV:SETPOINT to 0. // we want the altitude to remain constant so no vertical velocity.
 	Set highpitch to 0.
 
@@ -668,7 +668,7 @@ Function ff_CAB{
 	Until SHIP:GROUNDSPEED < 800{
 		//Create PID to adjust the craft pitch (without thrusting downward) which maintains a vertical velocity of zero and regulates the velocity of burn height change if not zero reventing a pitch above the horizontal.		
 		Set dpitch TO PIDVV:UPDATE(TIME:SECONDS, verticalspeed). //Get the PID on the AlT diff as desired vertical velocity
-		Set highpitch to min(max(highpitch + dpitch,0),90). // Ensure the pitch does not go below zero as gravity will efficently lower the veritcal velocity if required. also prevent it going above 90.
+		Set highpitch to min(max(highpitch + dpitch,0),60). // Ensure the pitch does not go below zero as gravity will efficently lower the veritcal velocity if required. also prevent it going above 90.
 		Clearscreen.
 		Print "Undertaking CAB".
 		Print "Ground Speed: " + SHIP:GROUNDSPEED.
@@ -679,7 +679,7 @@ Function ff_CAB{
 	Until SHIP:GROUNDSPEED < 50 {
 		//Create PID to adjust the craft pitch (without thrusting downward) which maintains a vertical velocity of zero and regulates the velocity of burn height change if not zero reventing a pitch above the horizontal.		
 		Set dpitch TO PIDVV:UPDATE(TIME:SECONDS, verticalspeed). //Get the PID on the AlT diff as desired vertical velocity
-		Set highpitch to max(highpitch + dpitch,0). // Ensure the pitch does not go below zero as gravity will efficently lower the veritcal velocity if required
+		Set highpitch to min(max(highpitch + dpitch,0),60). // Ensure the pitch does not go below zero as gravity will efficently lower the veritcal velocity if required
 		Clearscreen.
 		Print "Undertaking retrograde transistion".
 		Print "Ground Speed: " + SHIP:GROUNDSPEED.
@@ -688,7 +688,7 @@ Function ff_CAB{
 	}
 	Lock steering to retrograde.
 	Print "Canceling ground speed".
-	Until SHIP:GROUNDSPEED < 5 {
+	Until SHIP:GROUNDSPEED < 10 {
 		wait 0.01.
 	}
 	Lock Throttle to 0.0.
@@ -723,7 +723,7 @@ Function ff_SuBurn {
 		if abs(verticalspeed) < 20 {
 			LOCK STEERING to HEADING(90,90). // Lock in upright posistion and fixed rotation
 		}.
-		if (((ship:Altitude - SHIP:GEOPOSITION:TERRAINHEIGHT) < 0.25) or (Ship:Status = "LANDED")) and (SafeAlt < 10) { // this is used if the burn is intended to land the craft.
+		if (((ship:Altitude - SHIP:GEOPOSITION:TERRAINHEIGHT) < 0.25) or (Ship:Status = "LANDED")) or (SafeAlt > 5) { // this is used if the burn is intended to land the craft.
 			Lock Throttle to 0.
 			Unlock Throttle.
 			Break.
