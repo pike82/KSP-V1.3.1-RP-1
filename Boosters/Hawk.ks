@@ -8,21 +8,27 @@ local label is wndw:ADDLABEL("Enter Booster Values").
 set label:STYLE:ALIGN TO "CENTER".
 set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
-local box_azi is wndw:addhlayout().
-	local azi_label is box_azi:addlabel("Heading").
-	local azivalue is box_azi:ADDTEXTFIELD("90").
-	set azivalue:style:width to 100.
-	set azivalue:style:height to 18.
+local box_LAN is wndw:addhlayout().
+	local LAN_label is box_LAN:addlabel("Desired LAN").
+	local LANvalue is box_LAN:ADDTEXTFIELD("0").
+	set LANvalue:style:width to 100.
+	set LANvalue:style:height to 18.
 
 local box_inc is wndw:addhlayout().
-	local inc_label is box_inc:addlabel("Inclination").
+	local inc_label is box_inc:addlabel("Desired Inclination").
 	local incvalue is box_inc:ADDTEXTFIELD("0").
 	set incvalue:style:width to 100.
 	set incvalue:style:height to 18.
 
+local box_node is wndw:addhlayout().
+	local node_label is box_node:addlabel("Towards AN").
+	local nodevalue is box_node:ADDTEXTFIELD("True").
+	set nodevalue:style:width to 100.
+	set nodevalue:style:height to 18.
+
 local box_pitch is wndw:addhlayout().
 	local pitch_label is box_pitch:addlabel("Start Pitch").
-	local pitchvalue is box_pitch:ADDTEXTFIELD("85.35").
+	local pitchvalue is box_pitch:ADDTEXTFIELD("84").
 	set pitchvalue:style:width to 100.
 	set pitchvalue:style:height to 18.
 
@@ -45,10 +51,16 @@ local box_TAR is wndw:addhlayout().
 	set TARvalue:style:height to 18.
 
 local box_OFF is wndw:addhlayout().
-	local OFF_label is box_OFF:addlabel("Launch offset").
-	local OFFvalue is box_OFF:ADDTEXTFIELD("0.2").
+	local OFF_label is box_OFF:addlabel("Avg time to orbit (s)").
+	local OFFvalue is box_OFF:ADDTEXTFIELD("300").
 	set OFFvalue:style:width to 100.
 	set OFFvalue:style:height to 18.
+
+local box_Stg is wndw:addhlayout().
+	local Stg_label is box_Stg:addlabel("Stages").
+	local Stgvalue is box_Stg:ADDTEXTFIELD("2").
+	set Stgvalue:style:width to 100.
+	set Stgvalue:style:height to 18.
 
 local somebutton is wndw:addbutton("Confirm").
 set somebutton:onclick to Continue@.
@@ -61,13 +73,16 @@ UNTIL isDone {
 }
 
 Function Continue {
-		set val to azivalue:text.
+		set val to LANvalue:text.
 		set val to val:tonumber(0).
-		set sv_intAzimith to val.
+		set tgt_LAN to val.
 
 		set val to incvalue:text.
 		set val to val:tonumber(0).
 		Global tgt_inc is val.
+
+		set val to nodevalue:text.
+		set To_AN to val.
 
 		set val to pitchvalue:text.
 		set val to val:tonumber(0).
@@ -77,7 +92,7 @@ Function Continue {
 		set val to val:tonumber(0).
 		Global tgt_ap is val*1000.
 
-		set val to APaltvalue:text.
+		set val to PEaltvalue:text.
 		set val to val:tonumber(0).
 		Global tgt_pe is val*1000.
 
@@ -89,36 +104,49 @@ Function Continue {
 		set val to val:tonumber(0).
 		set L_OFF to val.
 
+		set val to Stgvalue:text.
+		set val to val:tonumber(0).
+		set Stg to val.
+
 	wndw:hide().
   	set isDone to true.
 }
 
-Print "Start Heading: " + sv_intAzimith.
+Print "Taget LAN: " + tgt_LAN.
 Print "Inc: " + tgt_inc.
+Print "to_an: " + to_an.
 Print "Start Pitch: " + sv_anglePitchover. 
 Print "AP at: " + tgt_ap + "m".
-Print "PE turn at: " + tgt_pe + "m".
+Print "PE turn at: " + tgt_pe + "m". 
 Print "Target: " + L_TAR.
 Print "Offset: " + L_OFF.
+Print ship:GEOPOSITION:lat.
 
 // Mission Values
 
-ff_launchwindow(L_TAR, L_OFF).
-Local sv_ClearanceHeight is 100. //tower clearance height
+local lncwin is ff_launchwindow(tgt_inc, L_TAR, tgt_LAN, To_AN).//returns azimuth and time until launch
+Print lncwin [0].
+Print lncwin [1].
+Global sv_intAzimith is lncwin [0]. 
+Local EngineStartTime is lncwin [1].
+Set EngineStartTime to TIME:SECONDS + EngineStartTime - (L_OFF).
+Local sv_ClearanceHeight is 150. //tower clearance height
+
 
 //Prelaunch
 
-Wait 1.
+warpto (EngineStartTime -5).
 PRINT "Prelaunch.".
 Lock Throttle to 1.
+
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 1.
 LOCK STEERING TO r(up:pitch,up:yaw,facing:roll). 
 
 //Liftoff
-
+Wait until TIME:SECONDS > (EngineStartTime).
 STAGE. //Ignite main engines
 Print "Starting engines".
-Local EngineStartTime is TIME:SECONDS.
+Set EngineStartTime to TIME:SECONDS.
 Local MaxEngineThrust is 0. 
 Local englist is List().
 LIST ENGINES IN engList. 
@@ -159,7 +187,7 @@ local LchAlt is ALT:RADAR.
 
 Wait UNTIL ALT:RADAR > sv_ClearanceHeight + LchAlt.
 LOCK STEERING TO HEADING(sv_intAzimith, 90).
-Wait UNTIL SHIP:Q > 0.015. 
+Wait UNTIL SHIP:Q > 0.02. 
 LOCK STEERING TO HEADING((sv_intAzimith-0), sv_anglePitchover).
 Print "Pitchover: " + (TIME:SECONDS - EngineStartTime).
 Wait 10.
@@ -167,12 +195,12 @@ lock pitch to 90 - VANG(SHIP:UP:VECTOR, SHIP:VELOCITY:SURFACE).
 LOCK STEERING TO heading(sv_intAzimith, pitch) .
 Print "Gravity Turn: " + (TIME:SECONDS - EngineStartTime).
 
-
+RCS on.
 local staging is false.
 until staging{
 	if AVAILABLETHRUST < 1 {
 		Stage. // Decouple the stage
-		Wait 0.1.
+		Wait 0.3.
 		Wait until Stage:Ready.
 		Set staging to true.
 		STAGE. //Start the next engine
@@ -181,7 +209,7 @@ until staging{
 	wait 1.
 } 
 
-f_Orbit_Steer().
+f_Orbit_Steer(Stg).
 
 Print "Ascent finished".
 Lock Throttle to 0.
@@ -192,123 +220,125 @@ Print "Orbit Reached".
 Set CORE:Part:Tag to "Nil".
 Shutdown. //ends the script
 
+
 function ff_launchwindow{
-Parameter target is Earth, ascendLongDiff is 0.2.
-	local IncPoss is true.
-	local incDiff is 0.
-	Local offset is 0.
-	Local shiplon is 400.
-	If Target = Earth{
-		Return 0.
-	}
-	if target = sun{ // launch to ecliptic
-		Until IncPoss = false{
-			Print "Launching to Ecliptic".
-			Print body:rotationangle.
-			Print abs(180 - body:rotationangle).
-			if abs(180 - body:rotationangle) < ascendLongDiff{
-				set warp to 0.
-				wait 3.
-				Print "warp 0".
-				Return 0.
-			}
-			if abs(180 - body:rotationangle)-ascendLongDiff < 0.2 {
-				set warp to 1.
-				Print 1.
-			}
-			else if abs(180 - body:rotationangle)-ascendLongDiff < 1 {
-				set warp to 2.
-				Print 2.
-			}
-			else if abs(180 - body:rotationangle)-ascendLongDiff < 10 {
-				set warp to 3.
-				Print 3.
-			}
-			else {
-				set warp to 4.
-				Print 4.
-			}
-			Wait 1.
+Parameter tgt_inc is 0, tgt is Earth, tgt_LAN is 0, To_AN is true.
+	local RetAzi is 90.
+	local RetETA is 0.
+
+//Work out Earth possibilities
+	If tgt = Earth{
+		If (tgt_inc = 0) and (tgt_LAN = 0) {
+			Return list(RetAzi, RetETA).// launch east now
+		} 
+		
+		If (tgt_inc = 0){
+			Set RetETA to ff_ETAToPlane(BODY, tgt_LAN, 90, To_AN).
+			Return list(RetAzi, RetETA).// launch Azi at eta
+
 		}
+
+
+		set ra to body:radius + tgt_ap. //full Ap
+		set rp to body:radius + tgt_pe. //full pe
+		local sma is (ra+rp)/2. //sma
+		local ecc is (ra-rp)/(ra+rp). //eccentricity
+		local V_p is sqrt((2*body:mu*ra)/(rp*2*sma)). // this is the target velocity at the periapsis
+
+		if tgt_inc < abs(latitude) { //If the inclination of the target is less than the lattitude of the ship
+			Set tgt_inc to abs(latitude).
+			Print "Latitude unable to allow normal Launch to inclination, switching to nearest inclination!!!".
+			wait 5.
+			Set RetAzi to f_FlightAzimuth(tgt_inc, V_p).
+			If To_AN <> true { Set RetAzi to 180 - RetAzi.}
+
+			If tgt_LAN = 0{
+				Return list(RetAzi, RetETA).// launch Azi now
+			}
+		}
+
+		Set RetAzi to f_FlightAzimuth(tgt_inc, V_p).
+		Set RetETA to ff_ETAToPlane(BODY, tgt_LAN, tgt_inc, To_AN).
+		Return list(RetAzi, RetETA).// launch Azi at eta
 	}
 
-	//  Lock the angle difference to the solar prime  
-	lock DeltaLAN to mod((360-target:orbit:lan) + body:rotationangle,360). // gets the modulas (remainder from integer division) to get the angle to the LAN
-	// Obtain the ship Longitude in a 360 degree reference (default is -180 to 180)
-	if longitude < 0{
-		local shiplon is abs(longitude).
-	}
-	else {
-		local shiplon is 360-longitude.
-	}
-	if target:orbit:inclination < abs(latitude) { //If the inclination of the target is less than the lattidue of the ship it will not pass over the site as the max latitude of its path is too low.
-		Set IncPoss to False.
-		Set incDiff to ship:orbit:inclination-target:orbit:inclination.
-		Print "Latitude unable to allow normal Launch to inclination!!!".
-		Print incDiff.
-		Print ship:orbit:inclination.
-		Print target:orbit:inclination.
-		Print IncPoss.
+	Set tgt_inc to tgt:orbit:inclination.// for craft and the moon and other planets
+	Set tgt_LAN to tgt:OBT:LAN. // for craft and the moon and other planets
+//Work out solar system possibilities
+
+	if tgt_inc < abs(latitude) { //If the inclination of the target is less than the lattitude of the ship
+		Set tgt_inc to abs(latitude).
+		Set incDiff to ship:orbit:inclination-tgt:orbit:inclination.
+		Print "Latitude unable to allow normal Launch to inclination, switching to nearest inclination!!!".
 		wait 5.
 	}
-	else {// A normal launch is possible with the target passing overhead.
-		Local offset is hf_tricalc(target).
-	}
-	local diffPlaneAng is 1000. //Set higher than the max inclination so it enters the loop
-	local newdiffPlaneAng is 1000.
-	Print IncPoss.
-	until diffPlaneAng < (incDiff + ascendLongDiff){
-		if IncPoss = False {
-			Set diffPlaneAng to vang(hf_normalvector(ship),hf_normalvector(target)).// finds the angle between the orbital planes
-			Print "Relative Inclination:   " + diffPlaneAng.
-			print "Minimum R. Inclination: " + incDiff.
-		}
-		else{
-			//Set diffPlaneAng to vang(hf_normalvector(ship),hf_normalvector(target)).
-			Set diffPlaneAng to abs((shiplon + offset) - DeltaLAN).
-			print "Relative LAN to Target: " + diffPlaneAng.
-		}
-		if diffPlaneAng <(incDiff + ascendLongDiff) +0.4 and diffPlaneAng > (incDiff + ascendLongDiff) + 0.2{
-			set warp to 1.
-			Print 2.
-		}
-		else if diffPlaneAng <(incDiff + ascendLongDiff) +1 and diffPlaneAng > (incDiff + ascendLongDiff) + 0.4{
-			set warp to 2.
-			Print 3.
-		}
-		else if diffPlaneAng < 10 and diffPlaneAng > (incDiff + ascendLongDiff) + 1{
-			set warp to 3.
-			Print 4.
-		}
-		Else if diffPlaneAng > 10{
-			set warp to 4.
-			Print 5.
-		}
 
-		wait 1.
-	}
-	set warp to 0.
-	Print vang(hf_normalvector(ship),hf_normalvector(target)).
+	Print "tgt_inc" + tgt_inc.
+	Print "tgt_LAN" + tgt_LAN.
+
+	set ra to body:radius + tgt_ap. //full Ap
+	set rp to body:radius + tgt_pe. //full pe
+	local sma is (ra+rp)/2. //sma
+	local ecc is (ra-rp)/(ra+rp). //eccentricity
+	local V_p is sqrt((2*body:mu*ra)/(rp*2*sma)). // this is the target velocity at the periapsis
+
+	Set RetAzi to f_FlightAzimuth(tgt_inc, V_p).
+	Set RetETA to ff_ETAToPlane(BODY, tgt_LAN, tgt_inc, To_AN).
+	Return list(RetAzi, RetETA).// launch Azi at eta
+
+	Print vang(hf_normalvector(ship),hf_normalvector(tgt)).
 	wait 5.
-	return vang(hf_normalvector(ship),hf_normalvector(target)).
+	return vang(hf_normalvector(ship),hf_normalvector(tgt)).
 }
-function hf_tricalc{
-	Parameter target.
-	local a is latitude.
-	local alpha is target:orbit:inclination.
-	local b is 0.
-	local c is 0.
-	local bell is 90.
-	local gamma is 0.
-	if sin(a)*sin(bell)/sin(alpha) >1 {
-		set b to 90.
-		}
-	else{
-		set b to arcsin(sin(a)*sin(bell)/sin(alpha)).
+
+function f_FlightAzimuth {
+	parameter inc, V_orb. // target inclination
+
+	// project desired orbit onto surface heading
+	local az_orb is arcsin ( cos(inc) / cos(ship:latitude)).
+	if (inc < 0) {
+		set az_orb to 180 - az_orb.
 	}
-	set c to 2*arctan(tan(.5*(a-b))*(sin(.5*(alpha+bell))/sin(.5*(alpha-bell)))).
-	return c.
+	
+	// create desired orbit velocity vector
+	local V_star is heading(az_orb, 0)*v(0, 0, V_orb).
+
+	// find horizontal component of current orbital velocity vector
+	local V_ship_h is ship:velocity:orbit - vdot(ship:velocity:orbit, up:vector)*up:vector.
+	
+	// calculate difference between desired orbital vector and current (this is the direction we go)
+	local V_corr is V_star - V_ship_h.
+	
+	// project the velocity correction vector onto north and east directions
+	local vel_n is vdot(V_corr, ship:north:vector).
+	local vel_e is vdot(V_corr, heading(90,0):vector).
+	
+	// calculate compass heading
+	local az_corr is arctan2(vel_e, vel_n).
+	return az_corr.
+
+}// End of Function
+
+function ff_ETAToPlane {
+	PARAMETER tgt, orb_lan, 
+  	i, is_AN is True, 
+	  ship_lat is ship:latitude, 
+	  ship_lng is Ship:Longitude.//South to North if ascending_node is TRUE, North to South if it is FALSE
+	
+	Print ship_lat.
+	Print i.
+	Print TAN(ship_lat).
+	Print TAN(i).
+
+	LOCAL rel_lng IS ARCSIN(TAN(ship_lat)/TAN(i)).
+    IF NOT is_AN { SET rel_lng TO 180 - rel_lng. }
+    LOCAL g_lan IS hf_mAngle(orb_lan + rel_lng - tgt:ROTATIONANGLE).
+    LOCAL node_angle IS hf_mAngle(g_lan - ship_lng).
+	SET r_eta TO (node_angle / 360) * tgt:ROTATIONPERIOD.
+	//Print "ETA " + r_eta.
+  	RETURN r_eta.
 }
+
 function hf_normalvector{
 	parameter ves.
 	Local vel is velocityat(ves,time:seconds):orbit.
@@ -327,9 +357,13 @@ function f_Orbit_Steer{
 // https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19660006073.pdf
 // https://amyparent.com/post/automating-rocket-launches/
 
-	Parameter //tgt_pe is 191100, //target periapsis
+	Parameter 
+	Stages,
+
+	//tgt_pe is 191100, //target periapsis
 	//tgt_ap is 191100, //target apoapsis
 	//tgt_inc is 26.8, //target inclination
+
 	u is 0,//Target true anomoly
 	HSL is 5, //end shutdown margin
 
@@ -351,6 +385,13 @@ function f_Orbit_Steer{
 	mass_flow1 is 0, //estimated mass flow
 	s_Ve1 is 1, //estimated exhuast vel (do not make 0)
 	tau1 is 1. //specific impulse???
+
+	If Stages < 2{
+		Set T2 to 0.
+	}
+	If Stages < 3{
+		Set T1 to 0.
+	}
 
 	local Thrust2 is s_Ve2 * mass_flow2.
 	local Thrust3 is s_Ve3 * mass_flow3.
@@ -527,7 +568,7 @@ function f_Orbit_Steer{
 		if  ((HSL - delta) < 2) and (tau_lock = true) and (T2 = 0){
 			Until false{
 				set s_vx to sqrt(ship:velocity:orbit:sqrmagnitude - ship:verticalspeed^2).
-				if (tgt_vx - 20) < s_vx{
+				if (tgt_vx -10) < s_vx{
 					lock Throttle to 0.
 					RCS on.
 					SET SHIP:CONTROL:FORE TO 1.0.
@@ -535,6 +576,7 @@ function f_Orbit_Steer{
 						wait 0.01.
 						set s_vx to sqrt(ship:velocity:orbit:sqrmagnitude - ship:verticalspeed^2).
 					}
+					SET SHIP:CONTROL:FORE TO 0.0.
 					RCS off.
 					Print "Insertion: "+(TIME:SECONDS).
 					Set loop_break to true.
@@ -632,14 +674,15 @@ function f_Orbit_Steer{
 		set s_pitch to A + C. //sin pitch at current time.
 		set s_pitch to max(-0.707, min(s_pitch, 0.707)). // limit the pitch change to between -45 and 45 degress
 		Set s_pitch to arcsin(s_pitch). //covert into degress
-		if tgt_inc = 0{
+		//if tgt_inc = 0{
 			LOCK STEERING TO heading(sv_intAzimith, s_pitch).
-		}Else{
-			if (converged = 1){
-				local fixed_head is f_FlightAzimuth(tgt_inc, tgt_vx).
-			}
-			LOCK STEERING TO heading(fixed_head, s_pitch).
-		}
+		//}Else{
+		//	if (converged = 1){
+		//		local fixed_head is f_FlightAzimuth(tgt_inc, tgt_vx).
+		//		LOCK STEERING TO heading(fixed_head, s_pitch).
+		//	}
+
+		//}
 		Print "S pitch: " + s_pitch.
 		Print (HSL - delta).
 	wait 0.1.
@@ -1185,35 +1228,6 @@ function f_peg_solve {
 }
 
 
-function f_FlightAzimuth {
-	parameter inc. // target inclination
-    parameter V_orb. // target orbital speed
-  
-	// project desired orbit onto surface heading
-	local az_orb is arcsin ( cos(inc) / cos(ship:latitude)).
-	if (inc < 0) {
-		set az_orb to 180 - az_orb.
-	}
-	
-	// create desired orbit velocity vector
-	local V_star is heading(az_orb, 0)*v(0, 0, V_orb).
-
-	// find horizontal component of current orbital velocity vector
-	local V_ship_h is ship:velocity:orbit - vdot(ship:velocity:orbit, up:vector)*up:vector.
-	
-	// calculate difference between desired orbital vector and current (this is the direction we go)
-	local V_corr is V_star - V_ship_h.
-	
-	// project the velocity correction vector onto north and east directions
-	local vel_n is vdot(V_corr, ship:north:vector).
-	local vel_e is vdot(V_corr, heading(90,0):vector).
-	
-	// calculate compass heading
-	local az_corr is arctan2(vel_e, vel_n).
-	return az_corr.
-
-}// End of Function
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1273,4 +1287,35 @@ function f_rel_fairing{
 			module:DOEVENT("deploy").
 		}
 	}.
+}
+
+FUNCTION hf_mAngle{
+PARAMETER a.
+  UNTIL a >= 0 { SET a TO a + 360. }
+  RETURN MOD(a,360).
+  
+}
+Function ff_Avionics_off{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleProceduralAvionics").
+	If M:HasEVENT("Shutdown Avionics"){
+		M:DOEVENT("Shutdown Avionics").
+	}
+}
+
+Function ff_Avionics_on{
+	Local P is SHIP:PARTSNAMED(core:part:Name)[0].
+	Local M is P:GETMODULE("ModuleProceduralAvionics").
+	If M:HasEVENT("Activate Avionics"){
+		M:DOEVENT("Activate Avionics").
+	}
+}
+
+Function hf_360AngDiff{
+	Parameter a, b.
+	return 180 - abs(abs(a-b)-180). 
+}
+Function hf_180AngDiff{
+	Parameter a, b.
+	return 90 - abs(abs(a-b)-90). 
 }

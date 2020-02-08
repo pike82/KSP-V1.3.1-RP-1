@@ -132,7 +132,7 @@ function ff_LANTimeScore {
 	local result is 0.
 	Local t is mnv:eta + time:seconds.
 	set result to Body:GEOPOSITIONOF(positionAT(ship, t)).
-	set result to abs(result:lat). //want highest lat.
+	set result to -abs(result:lat). //want highest lat.
 	return result.
 }
 

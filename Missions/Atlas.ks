@@ -122,7 +122,7 @@ If runmode = 2.5{
 }
 
 If runmode = 3{
-	local startTime is time:seconds + nextnode:eta - 33.
+	local startTime is time:seconds + nextnode:eta - 30.
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 120.
@@ -132,7 +132,7 @@ If runmode = 3{
 	lock throttle to 1.
 	Wait until Stage:Ready.
 	stage.//Start retro rockets
-	Wait 66.
+	Wait 60.
 	lock throttle to 0.
 	unlock steering.
 	RCS off.
@@ -152,7 +152,7 @@ If runmode = 4{
 	Lock steering to retrograde.
 	RCS on.
 	wait 60.
-	until ALT:RADAR < 10000{
+	until ALT:RADAR < 20000{
 		Wait 2.
 	}
 	Stage.

@@ -10,9 +10,21 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_END is wndw:addhlayout().
 	local END_label is box_END:addlabel("AP Transistion END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("180000").
+	local ENDvalue is box_END:ADDTEXTFIELD("39500").
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
+
+local box_END_time is wndw:addhlayout().
+	local END_time_label is box_END_time:addlabel("AP Transistion END time(s)").
+	local END_timevalue is box_END_time:ADDTEXTFIELD("43080").
+	set END_timevalue:style:width to 100.
+	set END_timevalue:style:height to 18.
+
+local box_LAN_time is wndw:addhlayout().
+	local LAN_time_label is box_LAN_time:addlabel("LAN").
+	local LAN_timevalue is box_LAN_time:ADDTEXTFIELD("270").
+	set LAN_timevalue:style:width to 100.
+	set LAN_timevalue:style:height to 18.
 
 local somebutton is wndw:addbutton("Confirm").
 set somebutton:onclick to Continue@.
@@ -23,6 +35,7 @@ LOCAL isDone IS FALSE.
 UNTIL isDone {
 	WAIT 1.
 }
+wait 1.
 
 Function Continue {
 
@@ -30,11 +43,19 @@ Function Continue {
 		set val to val:tonumber(0).
 		Global endheight is val*1000.
 
+		set val to END_timevalue:text.
+		set val to val:tonumber(0).
+		Global endtime is val.
+
+		set val to LAN_timevalue:text.
+		set val to val:tonumber(0).
+		Global endLAN is val.
+
 	wndw:hide().
   	set isDone to true.
 }
 
-Global boosterCPU is "Aethon".
+Global boosterCPU is "Hawk".
 
 Print "Stop burn at: " + endheight + "m".
 Print "Waiting for activation".
@@ -55,40 +76,140 @@ until holdload = true {
 ff_avionics_on().
 Panels on.
 
-Print "Geo Comm active".
+Print "Mol Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+SET SHIP:CONTROL:FORE TO 0.0.
 ff_COMMS().
 ff_avionics_off().
-/////High tranfer burn
 
-Local transnode is ff_Transfer (endheight).
-//local transmnv is node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 267, 33, 1) / 2).
+local start is Time:seconds + 300.
+local startnode is 0.
+local transnode is 0.
+local transmnv is 0.
+local startTime is Time:seconds + 300.
+local Counter is 0.
+
+/////LAN refine burn
+if abs(ship:orbit:Lan - endLAN) > 0.2 {
+	Global near is "e".
+	set startnode to ff_seek(start, ff_freeze(0), ff_freeze(0), ff_freeze(0), ff_IncTimeScore@).
+	remove nextnode.
+	wait 1.
+	// find manv deltav at that time.
+	Set start to startnode[0].
+
+	set transnode to ff_seek(ff_freeze(start), 0, 0, 0, ff_LANScore@).
+
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 422, 67, 1) / 2).
+	Print "burn starts at: " + startTime.
+	Print "Inc: " + nextnode:orbit:inclination.
+	print "Ap: " + nextnode:orbit:apoapsis.
+	Print "LAN: " + nextnode:orbit:Lan.
+	wait 5.
+	warpto(startTime - 75).
+	ff_avionics_on().
+	wait until time:seconds > startTime - 70.
+	lock steering to nextnode:deltav. //burnvector
+	RCS on.
+	wait until time:seconds > (startTime - 5).
+	SET SHIP:CONTROL:FORE TO 1.0.
+	wait 5. //RCS ullage
+	Lock Throttle to 1.
+	SET SHIP:CONTROL:FORE TO 0.0.
+	wait until time:seconds > startTime.
+	Wait until Stage:Ready.
+	Local englist is List().
+	LIST ENGINES IN engList. 
+	FOR eng IN engList {  
+		Print "eng:STAGE:" + eng:STAGE.
+		Print STAGE:NUMBER.
+		IF eng:STAGE >= STAGE:NUMBER { 
+			eng:activate. 
+			Print "Engine". 
+		}
+	}
+	until hf_isManeuverComplete(nextnode) {
+		wait 0.001.
+	}
+	lock throttle to 0.
+	unlock steering.
+	RCS off.
+	remove nextnode.
+	wait 1.0.
+}
+// High transfer burn
+
+local start is Time:seconds + 300.
+local startnode is 0.
+local transnode is 0.
+local transmnv is 0.
+local startTime is Time:seconds + 300.
+
+If ship:GEOPOSITION:lat > 0{ // negative means in southern hemisphere
+	Set startTime to startTime + (ship:orbit:period/2).
+}
+Global near is "s".
+set startnode to ff_seek(start, ff_freeze(0), ff_freeze(0), ff_freeze(0), ff_IncTimeScore@).
+remove nextnode.
+wait 1.
+// find manv deltav at that time.
+Set start to startnode[0].
+if start < time:seconds{ // if in the past
+ 	Set start to start + ship:orbit:period.
+}
+set transnode to ff_seek(ff_freeze(start), 0, 0, 2600, hf_APScore@).
+local Counter is 0.
+Until counter > 180{
+	Clearscreen.
+	Print "Refine Node before: " + (180-counter).
+	wait 1.
+	Set Counter to counter +1.
+}
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 422, 67, 1) / 2).
 Print "burn starts at: " + startTime.
+Print "Inc: " + nextnode:orbit:inclination.
+print "Ap: " + nextnode:orbit:apoapsis.
+Print "LAN: " + nextnode:orbit:Lan.
 wait 5.
 warpto(startTime - 75).
 ff_avionics_on().
 wait until time:seconds > startTime - 70.
 lock steering to nextnode:deltav. //burnvector
 RCS on.
-wait 65.
-Lock Throttle to 1.
+wait until time:seconds > (startTime - 5).
+SET SHIP:CONTROL:FORE TO 1.0.
 wait 5. //RCS ullage
+Lock Throttle to 1.
+SET SHIP:CONTROL:FORE TO 0.0.
 wait until time:seconds > startTime.
 Wait until Stage:Ready.
-stage.//Start main engines
+Local englist is List().
+LIST ENGINES IN engList. 
+FOR eng IN engList {  
+	Print "eng:STAGE:" + eng:STAGE.
+	Print STAGE:NUMBER.
+	IF eng:STAGE >= STAGE:NUMBER { 
+		eng:activate. 
+		Print "Engine". 
+	}
+}
 until hf_isManeuverComplete(nextnode) {
 	wait 0.001.
+	if AVAILABLETHRUST < 0.1{
+		Stage.
+		Wait 1.
+	}
 }
 lock throttle to 0.
 unlock steering.
 RCS off.
 remove nextnode.
 wait 1.0.
+
 Stage. // swicth stages to RCS stage
 Print "Waiting for AP".
-wait 15.
+wait 5.
 ff_avionics_off().
 /////AP tranfer burn to low
 
@@ -100,7 +221,7 @@ Until counter > 180{
 	wait 1.
 	Set Counter to counter +1.
 }
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 258, 2.959, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 warpto(startTime - 75).
@@ -120,93 +241,13 @@ unlock steering.
 RCS off.
 remove nextnode.
 ff_avionics_off().
-//Geo Circularise burn
 
-Local transnode is ff_GeoTransferlow ().
-Local counter is 0.
-Until counter > 180{
-	Clearscreen.
-	Print "Refine Node before: " + (180-counter).
-	wait 1.
-	Set Counter to counter +1.
-}
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
-Print "burn starts at: " + startTime.
-wait 5.
-ff_avionics_on().
-warpto(startTime - 75).
-wait until time:seconds > startTime - 70.
-lock steering to nextnode:deltav.
-RCS on.
-wait 70.
-wait until time:seconds > startTime.
-Lock Throttle to 1.
-until hf_isManeuverComplete(nextnode) {
-	wait 0.001.
-}
 lock throttle to 0.
 unlock steering.
 RCS off.
 remove nextnode.
 ff_avionics_off().
-//Geo Corbit refine
 
-Local transnode is ff_GeoTransferhigh ().
-Local counter is 0.
-Until counter > 180{
-	Clearscreen.
-	Print "Refine Node before: " + (180-counter).
-	wait 1.
-	Set Counter to counter +1.
-}
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
-Print "burn starts at: " + startTime.
-wait 5.
-warpto(startTime - 75).
-ff_avionics_on().
-wait until time:seconds > startTime - 70.
-lock steering to nextnode:deltav.
-RCS on.
-wait 70.
-wait until time:seconds > startTime.
-Lock Throttle to 1.
-until hf_isManeuverComplete(nextnode) {
-	wait 0.001.
-}
-lock throttle to 0.
-unlock steering.
-RCS off.
-remove nextnode.
-ff_avionics_off().
-//Geo inclination refine
-
-Local transnode is ff_GeoTransfer().
-Local counter is 0.
-Until counter > 180{
-	Clearscreen.
-	Print "Refine Node before: " + (180-counter).
-	wait 1.
-	Set Counter to counter +1.
-}
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
-Print "burn starts at: " + startTime.
-wait 5.
-ff_avionics_on().
-warpto(startTime - 75).
-wait until time:seconds > startTime - 70.
-lock steering to nextnode:deltav.
-RCS on.
-wait 70.
-wait until time:seconds > startTime.
-Lock Throttle to 1.
-until hf_isManeuverComplete(nextnode) {
-	wait 0.001.
-}
-lock throttle to 0.
-unlock steering.
-RCS off.
-remove nextnode.
-ff_avionics_off().
 wait 400.
 Shutdown.
 
@@ -227,133 +268,53 @@ FUNCTION ff_COMMS {
 	}
 } // End of Function
 
-
-function ff_Transfer {
-  Parameter endheight. //
-	Local start is time:seconds + 60.
-	Local end is orbit:period + time:seconds + 60.
-
-	local startSearchTime is hf_ternarySearch(
-		hf_LatScore@,
-		start, end, 1, false
-	).
-	local transfer is ff_seek(ff_freeze(startSearchTime), 0, 0, 3000, hf_APScore@).
-	return transfer.
-}
-
 function ff_LowerTransfer {
 	Local start is time:seconds + eta:apoapsis.
-	local transfer is ff_seek(ff_freeze(Start), ff_freeze(0), 0, 550, hf_LowScore@).
+	local transfer is ff_seek(ff_freeze(start), ff_freeze(0), ff_freeze(0), 0, hf_PerScore@).
 	return transfer.
-}
-
-function ff_GeoTransfer {
-	Local start is time:seconds + eta:periapsis.
-	local transfer is ff_seek(ff_freeze(start), ff_freeze(0), 0, 0, hf_IncScore@, true).
-	return transfer.
-}
-
-function ff_GeoTransferlow {
-	Local start is time:seconds + eta:periapsis.
-	local transfer is ff_seek(ff_freeze(start), ff_freeze(0), 0, 0, hf_GeoScore@, true).
-	return transfer.
-}
-
-function ff_GeoTransferHigh {
-	Local start is time:seconds + eta:apoapsis.
-	local transfer is ff_seek(ff_freeze(start), ff_freeze(0), 0, 0, hf_GeoScore@, true).
-	return transfer.
-}
-
-function hf_LatScore{
-  parameter t.
-	Local result is abs(Body:GEOPOSITIONOF(positionAT(ship, t)):lat).
-	Print "Lat: " +result.
-  	return result.
 }
 
 function hf_APScore{
   parameter mnv.
-	Local result is -(abs(Body:GEOPOSITIONOF(positionAT(ship, hf_TimeToApoapsis(mnv))):lat)*100000) - abs(mnv:orbit:apoapsis -endheight).// - nextnode:deltav:mag.
+  Local result is 0.
+	Local result is -(63.4-abs(mnv:orbit:inclination)) - (abs(mnv:orbit:apoapsis - endheight)/100000) - (hf_360AngDiff(endLAN, mnv:orbit:Lan)).// - nextnode:deltav:mag.
 	Print result.
   return result.
 }
 
-function hf_TimeToApoapsis {
+function hf_PerScore{
   parameter mnv.
-	local endtime is 1^9.
-	if mnv:orbit:eccentricity < 1 {
-		Set endtime to (mnv:orbit:period / 2).
+  Local result is 0.
+	Local result is -abs(mnv:orbit:period -endtime).// - nextnode:deltav:mag.
+	Print result.
+  return result.
+}
+
+function ff_LANScore {
+	parameter mnv.
+	local result is 0.
+	set result to hf_360AngDiff(endLAN, mnv:orbit:Lan) + (abs(ship:orbit:eccentricity - mnv:orbit:eccentricity)*500).
+	Print mnv:orbit:Lan.
+	Print result.
+	return (-1*result).// + abs(mnv:deltav:mag/100).
+}
+
+function ff_IncTimeScore {
+	parameter mnv.
+	local result is 0.
+	Local t is mnv:eta + time:seconds.
+	set result to Body:GEOPOSITIONOF(positionAT(ship, t)).
+	if near = "e" {
+		set result to abs(result:lat). //want any lat.
 	}
-  local apoapsisTime is hf_ternarySearch(
-    hf_altitudeAt@,
-    time:seconds + mnv:eta, 
-    time:seconds + mnv:eta + endtime,
-    1
-  ).
-  return apoapsisTime.
-}
-
-function hf_TimeToPeriapsis {
-  parameter mnv.
-  local periapsisTime is hf_ternarySearch(
-    hf_altitudeAt@,
-    time:seconds + mnv:eta, 
-    time:seconds + mnv:eta + (mnv:orbit:period / 2),
-    1, false
-  ).
-  return periapsisTime.
-}
-
-function hf_altitudeAt {
-  parameter t.
-  return ship:body:altitudeOf(positionAt(ship, t)).
-}
-
-function hf_lowScore{
-  parameter mnv, endPE is 35793172.
-	Local result is -(abs(0-mnv:orbit:inclination)*1000000) - abs(mnv:orbit:periapsis - endPE).
-	Print result.
-  	return result.
-}
-
-function hf_incScore{
-  parameter mnv.
-	Local result is - (abs(0-mnv:orbit:inclination)*10000) .
-	Print result.
-  	return result.
-}
-
-function hf_GeoScore{
-  parameter mnv, endperiod is 86164, endPE is 35793172.
-	Local result is -abs(mnv:orbit:period - endperiod) - abs(mnv:orbit:periapsis -endPE).// - abs(mnv:deltav:mag).
-	Print result.
-  	return result.
-}
-
-function hf_ternarySearch {
-  parameter f, left, right, absolutePrecision, maxVal is true.
-  until false {
-    if abs(right - left) < absolutePrecision {
-      return (left + right) / 2.
-    }
-    local leftThird is left + (right - left) / 3.
-    local rightThird is right - (right - left) / 3.
-    if maxval = true{
-			if f(leftThird) < f(rightThird) {
-				set left to leftThird.
-			} else {
-				set right to rightThird.
-			}
-		}
-		if maxval = false{
-			if f(leftThird) > f(rightThird) {
-				set left to leftThird.
-			} else {
-				set right to rightThird.
-			}
-		}
-  }
+	if near = "N" {
+		set result to result:lat. // if want noth return true.
+	}
+	if near = "S" {
+		set result to 0-result:lat. //if want south reverse true.
+	}
+	//Print "inc time:" +result.
+	return result.
 }
 
 function ff_freeze {
@@ -509,4 +470,13 @@ Function ff_Avionics_on{
 	If M:HasEVENT("Activate Avionics"){
 		M:DOEVENT("Activate Avionics").
 	}
+}
+
+Function hf_360AngDiff{
+	Parameter a, b.
+	return 180 - abs(abs(a-b)-180). 
+}
+Function hf_180AngDiff{
+	Parameter a, b.
+	return 90 - abs(abs(a-b)-90). 
 }

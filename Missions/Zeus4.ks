@@ -10,9 +10,15 @@ set label:STYLE:HSTRETCH TO True. // Fill horizontally
 
 local box_END is wndw:addhlayout().
 	local END_label is box_END:addlabel("AP Transistion END (km)").
-	local ENDvalue is box_END:ADDTEXTFIELD("180000").
+	local ENDvalue is box_END:ADDTEXTFIELD("36000").
 	set ENDvalue:style:width to 100.
 	set ENDvalue:style:height to 18.
+
+local box_Con is wndw:addhlayout().
+	local Con_label is box_Con:addlabel("Geo?").
+	local Convalue is box_Con:ADDTEXTFIELD("True").
+	set Convalue:style:width to 100.
+	set Convalue:style:height to 18.
 
 local somebutton is wndw:addbutton("Confirm").
 set somebutton:onclick to Continue@.
@@ -29,12 +35,15 @@ Function Continue {
 		set val to ENDvalue:text.
 		set val to val:tonumber(0).
 		Global endheight is val*1000.
+				
+		set val to Convalue:text.
+		set Con to val.
 
 	wndw:hide().
   	set isDone to true.
 }
 
-Global boosterCPU is "Aethon".
+Global boosterCPU is "Hawk".
 
 Print "Stop burn at: " + endheight + "m".
 Print "Waiting for activation".
@@ -58,13 +67,20 @@ Panels on.
 Print "Geo Comm active".
 Lock Throttle to 0.
 Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+SET SHIP:CONTROL:FORE TO 0.0.
 ff_COMMS().
 ff_avionics_off().
+wait 5.
+
+If Con = "False"{
+	Shutdown.
+}
+
 /////High tranfer burn
 
 Local transnode is ff_Transfer (endheight).
 //local transmnv is node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 267, 33, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 422, 67, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 warpto(startTime - 75).
@@ -73,11 +89,22 @@ wait until time:seconds > startTime - 70.
 lock steering to nextnode:deltav. //burnvector
 RCS on.
 wait 65.
-Lock Throttle to 1.
+SET SHIP:CONTROL:FORE TO 1.0.
 wait 5. //RCS ullage
+Lock Throttle to 1.
+SET SHIP:CONTROL:FORE TO 0.0.
 wait until time:seconds > startTime.
 Wait until Stage:Ready.
-stage.//Start main engines
+Local englist is List().
+LIST ENGINES IN engList. 
+FOR eng IN engList {  
+	Print "eng:STAGE:" + eng:STAGE.
+	Print STAGE:NUMBER.
+	IF eng:STAGE >= STAGE:NUMBER { 
+		eng:activate. 
+		Print "Engine". 
+	}
+}
 until hf_isManeuverComplete(nextnode) {
 	wait 0.001.
 }
@@ -100,7 +127,7 @@ Until counter > 180{
 	wait 1.
 	Set Counter to counter +1.
 }
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 258, 2.959, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 warpto(startTime - 75).
@@ -130,7 +157,7 @@ Until counter > 180{
 	wait 1.
 	Set Counter to counter +1.
 }
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 258, 2.959, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 ff_avionics_on().
@@ -149,7 +176,7 @@ unlock steering.
 RCS off.
 remove nextnode.
 ff_avionics_off().
-//Geo Corbit refine
+//Geo Orbit refine PE and timing
 
 Local transnode is ff_GeoTransferhigh ().
 Local counter is 0.
@@ -159,7 +186,7 @@ Until counter > 180{
 	wait 1.
 	Set Counter to counter +1.
 }
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 258, 2.959, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 warpto(startTime - 75).
@@ -188,7 +215,7 @@ Until counter > 180{
 	wait 1.
 	Set Counter to counter +1.
 }
-local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 198, 0.957, 1) / 2).
+local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag, 258, 2.959, 1) / 2).
 Print "burn starts at: " + startTime.
 wait 5.
 ff_avionics_on().
