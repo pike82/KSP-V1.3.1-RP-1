@@ -54,7 +54,7 @@ Function Continue {
   	set isDone to true.
 }
 
-Global boosterCPU is "Hawk".
+Global boosterCPU is "Hawk2".
 
 If runmode = 0{
 
@@ -101,7 +101,7 @@ If runmode = 1.5{
 }
 
 If runmode = 2{
-	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 422, 67, 1)).
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 444, 67, 1)).
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 120.
@@ -167,7 +167,7 @@ If runmode = 3.5{
 }
 
 If runmode = 4{
-	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 258, 2.959, 1)).
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 281.7, 1.8, 1)).
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 60.
@@ -240,7 +240,7 @@ If Runmode = 6{
 	Print "PE Burn Setup".
 	Local orbspeed is sqrt(Body:MU/(endPE + body:radius)).
 	Local BurnSpeed is velocityat(ship, eta:periapsis):orbit:mag - orbspeed.
-	Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(nextnode:deltaV:mag / 2, 258, 2.959, 1)).
+	Set corr_time to time:seconds + eta:periapsis - (ff_Burn_Time(nextnode:deltaV:mag / 2, 281.7, 1.8, 1)).
 	Print "Dv: " +BurnSpeed.
 	Print corr_time. 
 	wait 5.
@@ -251,7 +251,7 @@ If Runmode = 6{
 		wait 1.
 		Set Counter to counter +1.
 	}
-	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 258, 2.959, 1)).
+	local startTime is time:seconds + nextnode:eta - (ff_Burn_Time(nextnode:deltaV:mag / 2, 281.7, 1.8, 1)).
 	Print "burn starts at: " + startTime.
 	wait 5.
 	wait until time:seconds > startTime - 70.

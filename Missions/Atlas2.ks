@@ -1,5 +1,7 @@
 // Get Mission Values
 
+//first manned orbital mission
+
 local wndw is gui(300).
 set wndw:x to 700. //window start position
 set wndw:y to 120.
@@ -14,21 +16,9 @@ local box_TAR is wndw:addhlayout().
 	set TARvalue:style:width to 100.
 	set TARvalue:style:height to 18.
 
-local box_WAIT is wndw:addhlayout().
-	local WAIT_label is box_WAIT:addlabel("AP WAIT").
-	local WAITvalue is box_WAIT:ADDTEXTFIELD("175").
-	set WAITvalue:style:width to 100.
-	set WAITvalue:style:height to 18.
-
-local box_ENDP is wndw:addhlayout().
-	local ENDP_label is box_ENDP:addlabel("PE END (km)").
-	local ENDPvalue is box_ENDP:ADDTEXTFIELD("170").
-	set ENDPvalue:style:width to 100.
-	set ENDPvalue:style:height to 18.
-
 local box_End is wndw:addhlayout().
 	local End_label is box_End:addlabel("Mission end (hours)").
-	local Endvalue is box_End:ADDTEXTFIELD("168.00").
+	local Endvalue is box_End:ADDTEXTFIELD("120.00").
 	set Endvalue:style:width to 100.
 	set Endvalue:style:height to 18.
 
@@ -41,10 +31,21 @@ local box_Res is wndw:addhlayout().
 local somebutton is wndw:addbutton("Confirm").
 set somebutton:onclick to Continue@.
 
+Global boosterCPU is "Hawk".
+Global aborted is false. 
+
 // Show the GUI.
 wndw:SHOW().
 LOCAL isDone IS FALSE.
+on abort {
+	set isDone to true.
+	set runmode to 4.
+	ff_Abort(). 
+
+}
+
 UNTIL isDone {
+	ff_CheckAbort().
 	WAIT 1.
 }
 
@@ -53,14 +54,6 @@ Function Continue {
 		set val to TARvalue:text.
 		set val to val:tonumber(0).
 		set L_TAR to val.
-
-		set val to WAITvalue:text.
-		set val to val:tonumber(0).
-		set apwait to val.
-
-		set val to ENDPvalue:text.
-		set val to val:tonumber(0).
-		set endheight to val*1000.
 
 		set val to Endvalue:text.
 		set val to val:tonumber(0).
@@ -74,14 +67,12 @@ Function Continue {
   	set isDone to true.
 }
 wait 0.1.
-Global boosterCPU is "Aethon3".
 If runmode = 0{
-
+ Local holdload is false.
 	Print "Waiting for activation".
 	//wait for active
-	Local holdload is false. 
 	until holdload = true {
-		Set holdload to true. //reset to true and rely on previous stage to turn false
+		Set holdload to true. //reset to true and rely on previous stage or abort to turn false
 		local PROCESSOR_List is list().
 		LIST PROCESSORS IN PROCESSOR_List. // get a list of all connected cores
 		for Processor in PROCESSOR_List {
@@ -92,49 +83,25 @@ If runmode = 0{
 		ff_CheckAbort().
 		wait 0.2.
 
-		// if (SHIP:Q > 0.34) and (ship:airspeed > 5) { //max Q abort test
-		// Print "Max Q abort".
-		// ff_Abort().
+		// if (SHIP:Q > 0.45) and (ship:airspeed > 5) { //max Q abort test
+		// 	Print "Max Q abort".
+		// 	ff_Abort().
 		// }
 		
-		// if (ship:AVAILABLETHRUST/(ship:mass*9.8)) > 5 { //high G abort test
+		// if (ship:AVAILABLETHRUST/(ship:mass*9.8)) > 7 { //high G abort test
 		// 	Print "High G abort".
 		// 	ff_Abort().
 		// }
 
 	}
-	Print "Atlas 2 active".
+	Print "Atlas active".
 	Lock Throttle to 0.
 	Set SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-	RCS on.
-	Lock Steering to prograde.
-	SET SHIP:CONTROL:FORE TO 0.9.//move out of interstage
-	wait 1.
-	SET SHIP:CONTROL:FORE TO 0.0.
-//Circularise burn
-	until (ETA:apoapsis) < apwait{
-		wait 0.5.
-	}
-	Lock Horizon to VXCL(UP:VECTOR, VELOCITY:SURFACE). //negative velocity makes it retrograde
-	SET SHIP:CONTROL:FORE TO 0.9.//start ullage using RCS
-	wait 5.
-	Lock Throttle to 1.
-	SET SHIP:CONTROL:FORE to 0.
-	Stage.//start engine
-	LOCK STEERING TO LOOKDIRUP(ANGLEAXIS(0,
-			VCRS(horizon,BODY:POSITION))*horizon,
-			FACING:TOPVECTOR).//lock to prograde along horizon
-	until (ship:periapsis > endheight) or (ship:apoapsis > 1000000){
-		Wait 0.01.
-	}
-	Lock Throttle to 0.
 	RCS off.
-	Wait 1. 
-	Unlock throttle.
-	//unlock steering.
-	lock steering to sun:position.
-	Panels on.
-	Set runmode to 1.	
+	wait 10.
+	If runmode = 0{
+		Set runmode to 1.	
+	}
 }
 If runmode = 1{
 	
@@ -143,16 +110,16 @@ If runmode = 1{
 		Print "Waitng for mission to finish : " + (endtime - MISSIONTIME).
 		Wait 1.0.
 	}
-	Set runmode to 2.5.
+	Set runmode to 2.
 }
 
-// If runmode = 2{
-// 	Local transnode is ff_transfer(L_TAR).
-// 	local transmnv is node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
-// 	add transmnv.
-// 	wait 30.
-// 	Set runmode to 2.5.
-// }
+If runmode = 2{
+	Local transnode is ff_transfer(L_TAR).
+	local transmnv is node(hf_unfreeze(transnode[0]), hf_unfreeze(transnode[1]), hf_unfreeze(transnode[2]), hf_unfreeze(transnode[3])).
+	add transmnv.
+	wait 1.
+	Set runmode to 2.5.
+}
 
 If runmode = 2.5{
 	Local counter is 0.
@@ -166,55 +133,43 @@ If runmode = 2.5{
 }
 
 If runmode = 3{
-	local startTime is time:seconds + nextnode:eta.
+	local startTime is time:seconds + nextnode:eta - 30.
 	Print "burn starts at: " + startTime.
 	wait 5.
-	wait until time:seconds > startTime - 60.
+	wait until time:seconds > startTime - 120.
 	RCS on.
 	lock steering to nextnode:burnvector.
 	wait until time:seconds > startTime.
 	lock throttle to 1.
-	until hf_isManeuverComplete(nextnode) {
-	  	wait 0.01.
-	}
+	Wait until Stage:Ready.
+	stage.//Start retro rockets
+	Wait 60.
 	lock throttle to 0.
 	unlock steering.
-	unlock throttle.
 	RCS off.
+	stage. //release retro rockets
 	remove nextnode.
 	Set runmode to 3.5.
 }
 
 If runmode = 3.5{
-	until altitude < 141000{
+	until altitude < 121000{
 		Wait 2.
 	}
-	Stage. // release solar modules
 	Set runmode to 4.
 }
 
 If runmode = 4{
+	Print "runmode is 4".
 	Lock steering to retrograde.
 	RCS on.
-	wait 60.
-	RCS off.
-	until ALT:RADAR < 85000{
+	wait 5.
+	until ALT:RADAR < 20000{
 		Wait 2.
 	}
-	SAS on.
-	RCS on.
-	wait 20. 
-	unlock steering.
-	SAS off.
-	Wait 10.
-	SAS on.
-	until ALT:RADAR < 15000{
-		Wait 2.
-	}
-	Stage. //Release protective cover.
-	until ALT:RADAR < 5000{
-		Wait 2.
-	}
+	Stage.
+	wait 1.
+	Stage.
 	ff_Para_activate().
 	RCS off.
 	wait 5.
@@ -224,7 +179,9 @@ Shutdown.
 
 Function ff_Para_activate{
 	for RealChute in ship:modulesNamed("RealChuteModule") {
-		RealChute:doevent("arm parachute").
+		if RealChute:HasEVENT("arm parachute"){
+			RealChute:doevent("arm parachute").
+		}
 		Print "Parchute armed enabled.".
 	}
 }
@@ -252,12 +209,15 @@ function ff_CheckAbort{
 }
 
 Function ff_Abort {
+	if aborted = true {return.}
 	Print "Engine Shutdown!!!".
 	local PROCESSOR_List is list().
 	LIST PROCESSORS IN PROCESSOR_List. // get a list of all connected cores
 	for Processor in PROCESSOR_List {
 		if Processor:TAG = boosterCPU{ //checks to see if previous stage is present
 			Processor:DEACTIVATE().
+			Set aborted to True.
+			Print "Craft Aborted".
 		}
 	}
 	lock throttle to 0.
@@ -269,24 +229,24 @@ Function ff_Abort {
 		}
 	}
 	wait 0.1.
-	Abort on.
-	until (verticalspeed < 1){
+	lock steering to Prograde.
+	abort on.
+	wait 13.
+	until (SHIP:Q < 0.05) and ((altitude > 500) or (verticalspeed < 1 )){
 		wait 1.
 	}
+	Print "Brakes on".
 	brakes on.
-	wait 1.0.
-	Stage.
-	Wait 1.0.
-	Stage.
-	RCS on.
-	Lock Steering to retrograde.
+	wait 0.5.
+	lock steering to Retrograde.
+	Set runmode to 4.
 }
 
 function ff_Transfer {
 Parameter targ. //
 	Local startSearchTime is time:seconds + 120.
 	Global Scorebound is hf_LandOnPlanetscore@:bind(targ).
-  	set transfer to ff_seek(startSearchTime, ff_freeze(0), ff_freeze(0), ff_freeze(-73), Scorebound). 
+  	set transfer to ff_seek(startSearchTime, ff_freeze(0), ff_freeze(0), ff_freeze(-157), Scorebound). //the 55 is the known thrust but this can be changed if the amount is changed.
   	return transfer.
 }
 

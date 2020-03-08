@@ -28,19 +28,19 @@ local box_node is wndw:addhlayout().
 
 local box_pitch is wndw:addhlayout().
 	local pitch_label is box_pitch:addlabel("Start Pitch").
-	local pitchvalue is box_pitch:ADDTEXTFIELD("84").
+	local pitchvalue is box_pitch:ADDTEXTFIELD("83.5").
 	set pitchvalue:style:width to 100.
 	set pitchvalue:style:height to 18.
 
 local box_APalt is wndw:addhlayout().
 	local APalt_label is box_APalt:addlabel("End AP(km)").
-	local APaltvalue is box_APalt:ADDTEXTFIELD("190").
+	local APaltvalue is box_APalt:ADDTEXTFIELD("200").
 	set APaltvalue:style:width to 100.
 	set APaltvalue:style:height to 18.
 
 local box_PEalt is wndw:addhlayout().
 	local PEalt_label is box_PEalt:addlabel("End PE(km)").
-	local PEaltvalue is box_PEalt:ADDTEXTFIELD("190").
+	local PEaltvalue is box_PEalt:ADDTEXTFIELD("200").
 	set PEaltvalue:style:width to 100.
 	set PEaltvalue:style:height to 18.
 
@@ -52,7 +52,7 @@ local box_TAR is wndw:addhlayout().
 
 local box_OFF is wndw:addhlayout().
 	local OFF_label is box_OFF:addlabel("Avg time to orbit (s)").
-	local OFFvalue is box_OFF:ADDTEXTFIELD("300").
+	local OFFvalue is box_OFF:ADDTEXTFIELD("360").
 	set OFFvalue:style:width to 100.
 	set OFFvalue:style:height to 18.
 
@@ -198,28 +198,13 @@ Print "Gravity Turn: " + (TIME:SECONDS - EngineStartTime).
 RCS on.
 local staging is false.
 until staging{
-	if (AVAILABLETHRUST < 1)  {
+	if AVAILABLETHRUST < 1 {
 		Stage. // Decouple the stage
 		Wait 0.3.
 		Wait until Stage:Ready.
 		Set staging to true.
 		STAGE. //Start the next engine
 		wait 1.
-	}
-	if (ship:CREWCAPACITY > 0) {
-		If (ship:AVAILABLETHRUST/(ship:mass*9.8)) > 10 {
-			Print "high G staging".
-			lock throttle to 0.
-			lock PILOTMAINTHROTTLE to 0.
-			Wait 1.5.
-			Stage. // Decouple the stage
-			Wait 0.3.
-			lock throttle to 1.
-			Wait until Stage:Ready.
-			Set staging to true.
-			STAGE. //Start the next engine
-			wait 1.
-		}
 	}
 	wait 1.
 } 
@@ -284,21 +269,23 @@ Parameter tgt_inc is 0, tgt is Earth, tgt_LAN is 0, To_AN is true.
 	Set tgt_LAN to tgt:OBT:LAN. // for craft and the moon and other planets
 //Work out solar system possibilities
 
-	if tgt_inc < abs(latitude) { //If the inclination of the target is less than the lattitude of the ship
-		Set tgt_inc to abs(latitude).
-		Set incDiff to ship:orbit:inclination-tgt:orbit:inclination.
-		Print "Latitude unable to allow normal Launch to inclination, switching to nearest inclination!!!".
-		wait 5.
-	}
-
-	Print "tgt_inc" + tgt_inc.
-	Print "tgt_LAN" + tgt_LAN.
-
 	set ra to body:radius + tgt_ap. //full Ap
 	set rp to body:radius + tgt_pe. //full pe
 	local sma is (ra+rp)/2. //sma
 	local ecc is (ra-rp)/(ra+rp). //eccentricity
 	local V_p is sqrt((2*body:mu*ra)/(rp*2*sma)). // this is the target velocity at the periapsis
+
+	if tgt_inc < abs(latitude) { //If the inclination of the target is less than the lattitude of the ship
+		Set tgt_inc to abs(latitude). //TODO for future with PEG dog legging.
+		//Set incDiff to ship:orbit:inclination-tgt:orbit:inclination.
+		Print "Latitude unable to allow normal Launch to inclination, switching to nearest inclination!!!".
+		wait 1.
+		Set RetETA to ff_ETAToPlane(BODY, tgt_LAN, tgt_inc, To_AN).
+		Return list(90, RetETA).// launch west Azi at eta
+	}
+
+	Print "tgt_inc" + tgt_inc.
+	Print "tgt_LAN" + tgt_LAN.
 
 	Set RetAzi to f_FlightAzimuth(tgt_inc, V_p).
 	Set RetETA to ff_ETAToPlane(BODY, tgt_LAN, tgt_inc, To_AN).
@@ -387,22 +374,20 @@ function f_Orbit_Steer{
 
 	T3 is 60, // stage three estimated burn length
 	mass_flow3 is 16.2, //estimated mass flow
-	start_mass3 is 9463, //estimated start mass in kg
+	start_mass3 is 9780, //estimated start mass in kg
 	s_Ve3 is 4135, //estimated exhuast vel (thrust/massflow)
 	tau3 is 590, //(S-Ve/avg_acc) effective time to burn all propellant
 
-	//T2_end is 360, //stage two estimated burn ending time from liftoff
-	T2 is 227, // stage two estimated burn length
-	mass_flow2 is 102, //estimated mass flow
-	start_mass2 is 34860, //estimated start mass in kg
-	s_Ve2 is 3064, //estimated exhuast vel (thrust/massflow)
-	tau2 is 220, //(S-Ve/avg_acc) estimated effective time to burn all propellant
+	T2 is 450, // stage two estimated burn length
+	mass_flow2 is 31.552, //estimated mass flow
+	start_mass2 is 28052, //estimated start mass in kg
+	s_Ve2 is 4246, //estimated exhuast vel (thrust/massflow)
+	tau2 is 609, //(S-Ve/avg_acc (G *9.81)) estimated effective time to burn all propellant
 
-	//T1_end is 0, //stage one estimated burn ending time from liftoff
 	T1 is 0, // stage one estimated burn length
 	mass_flow1 is 0, //estimated mass flow
 	s_Ve1 is 1, //estimated exhuast vel (do not make 0)
-	tau1 is 1. //specific impulse???
+	tau1 is 1. //(S-Ve/avg_acc) estimated effective time to burn all propellant
 
 	If Stages < 2{
 		Set T2 to 0.
@@ -584,7 +569,7 @@ function f_Orbit_Steer{
 		if  (T3 < HSL) and (tau_lock = true) and (T2 = 0){
 			Until false{
 				set s_vx to sqrt(ship:velocity:orbit:sqrmagnitude - ship:verticalspeed^2).
-				if (tgt_vx -10) < s_vx{
+				if (tgt_vx -2) < s_vx{
 					lock Throttle to 0.
 					RCS on.
 					SET SHIP:CONTROL:FORE TO 1.0.
